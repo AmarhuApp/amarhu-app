@@ -2,7 +2,14 @@
   <div class="video-performance">
     <h3>Rendimiento del último video</h3>
     <div class="video-thumbnail">
-      <img :src="video.thumbnail" alt="Último video" />
+      <img
+          v-if="video.thumbnail"
+          :src="video.thumbnail"
+          :alt="`Thumbnail del video ${video.title}`"
+      />
+      <div v-else class="placeholder-thumbnail">
+        Imagen no disponible
+      </div>
       <div class="video-title">{{ video.title }}</div>
     </div>
     <p class="video-details">{{ video.publishDate }} desde la publicación:</p>
@@ -31,6 +38,14 @@ export default {
     video: {
       type: Object,
       required: true,
+      default: () => ({
+        title: "Sin título",
+        thumbnail: "",
+        publishDate: "Desconocido",
+        views: 0,
+        clickThroughRate: 0,
+        averageWatchDuration: "0:00",
+      }),
     },
   },
   methods: {
@@ -58,6 +73,19 @@ export default {
 
 .video-thumbnail img {
   width: 100%;
+  border-radius: 8px;
+  object-fit: cover; /* Asegura que la imagen siempre ocupe todo el espacio disponible */
+}
+
+.placeholder-thumbnail {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #e0e0e0;
+  color: #666;
+  font-size: 14px;
   border-radius: 8px;
 }
 
@@ -120,4 +148,3 @@ h3 {
   font-weight: 600;
 }
 </style>
-

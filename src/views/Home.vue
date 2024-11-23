@@ -34,7 +34,7 @@ export default {
       totalVideos: 10,
       lastVideo: {
         title: "Entrevista n°4",
-        thumbnail: "https://via.placeholder.com/300x200",
+        thumbnail: "/assets/image-3.png",
         publishDate: "Hace 206 días",
         views: 3,
         clickThroughRate: 0,

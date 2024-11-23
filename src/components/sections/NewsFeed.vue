@@ -29,14 +29,14 @@ export default {
           title: "Noticia 1",
           content: "Contenido de la noticia 1...",
           liked: false,
-          image: "https://via.placeholder.com/150",
+          image: "/assets/image-1.png",
         },
         {
           id: 2,
           title: "Noticia 2",
           content: "Contenido de la noticia 2...",
           liked: false,
-          image: "https://via.placeholder.com/150",
+          image: "/assets/image-2.png",
         },
         {
           id: 3,
@@ -84,8 +84,8 @@ export default {
 }
 
 .post-image img {
-  width: 50px;
-  height: 50px;
+  width: 145px;
+  height: 90px;
   border-radius: 4px;
   margin-right: 10px;
 }
