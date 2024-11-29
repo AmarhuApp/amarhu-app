@@ -4,9 +4,10 @@
     <div class="content-wrapper">
       <Sidebar />
       <div class="main-content">
+
         <h2>Total de Videos: {{ totalVideos }}</h2>
 
-        <LastVideoPerformance v-if="isHomeRoute" :video="lastVideo" />
+        <LastVideoPerformance v-if="isHomeRoute" />
         <router-view v-else />
       </div>
       <NewsFeed />
@@ -19,7 +20,8 @@ import Header from "@/components/layout/Header.vue";
 import Sidebar from "@/components/layout/Sidebar.vue";
 import NewsFeed from "@/components/sections/NewsFeed.vue";
 import LastVideoPerformance from "@/components/sections/LastVideoPerformance.vue";
-import { useRoute } from 'vue-router';
+import axios from "axios";
+import { useRoute } from "vue-router";
 
 export default {
   name: "Home",
@@ -31,25 +33,38 @@ export default {
   },
   data() {
     return {
-      totalVideos: 10,
-      lastVideo: {
-        title: "Entrevista n°4",
-        thumbnail: "/assets/image-3.png",
-        publishDate: "Hace 206 días",
-        views: 3,
-        clickThroughRate: 0,
-        averageWatchDuration: "0:21",
-      },
+      totalVideos: 0,
     };
   },
   computed: {
     isHomeRoute() {
       const route = useRoute();
-      return route.path === '/';
+      return route.path === "/";
+    },
+  },
+  created() {
+    this.fetchProductionData(); // Llama a la API al cargar el componente
+  },
+  methods: {
+    async fetchProductionData() {
+      try {
+        const response = await axios.get(
+            "http://localhost:3000/resumenProduccion"
+        );
+        const data = response.data;
+
+        // Actualizamos el total de videos desde la API
+        this.totalVideos = data.totalVideos;
+
+        // Puedes actualizar aquí otros datos si los necesitas
+      } catch (error) {
+        console.error("Error al obtener los datos de la API:", error);
+      }
     },
   },
 };
 </script>
+
 
 <style scoped>
 .home {
@@ -75,5 +90,13 @@ h2 {
   font-size: 20px;
   margin-bottom: 20px;
   color: #333;
+}
+
+.home {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: #ffffff; /* Fondo blanco */
 }
 </style>

@@ -1,0 +1,63 @@
+{
+  "resumenProduccion": {
+    "directivo": "Lorenzo Vallejo",
+    "codigoDirectivo": "N/A",
+    "totalVideos": 1109,
+    "filtroCaidos": 235,
+    "gananciaTotal": 40050.838,
+    "gananciaMenosImpuestos": 31239.65364,
+    "gananciaNeta": 30180.0096,
+    "costeProduccion": 20,
+    "costeTotalProduccion": 22180,
+    "totalGeneradoPorCaidos": 1358.52
+  },
+  "resumenProduccionMesPasado": {
+    "directivo": "Lorenzo Vallejo",
+    "codigoDirectivo": "N/A",
+    "totalVideos": 1020,
+    "filtroCaidos": 200,
+    "gananciaTotal": 38000,
+    "gananciaMenosImpuestos": 29840,
+    "gananciaNeta": 29000,
+    "costeProduccion": 20,
+    "costeTotalProduccion": 21500,
+    "totalGeneradoPorCaidos": 1300
+  },
+
+
+  "videos": [
+    {
+      "id": "kU5JGfIYMOk",
+      "description": "¡Los estadounidenses perdieron la chaveta! ...",
+      "date": "01 - August - 2024",
+      "views": 22755,
+      "estimatedRevenue": 17.444,
+      "estimatedAdRevenue": 16.736,
+      "videoViews": 22748,
+      "averageViewDuration": 189,
+      "rpm": 0.766836645
+    },
+    {
+      "id": "exampleID02",
+      "description": "Otro video producido...",
+      "date": "02 - August - 2024",
+      "views": 20000,
+      "estimatedRevenue": 15.32,
+      "estimatedAdRevenue": 14.92,
+      "videoViews": 19950,
+      "averageViewDuration": 190,
+      "rpm": 0.71
+    },
+    {
+      "id": "exampleID03",
+      "description": "Producción impresionante...",
+      "date": "03 - August - 2024",
+      "views": 18000,
+      "estimatedRevenue": 12.25,
+      "estimatedAdRevenue": 11.5,
+      "videoViews": 17800,
+      "averageViewDuration": 175,
+      "rpm": 0.65
+    }
+  ]
+}

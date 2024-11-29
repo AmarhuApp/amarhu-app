@@ -9,3 +9,11 @@ export default {
   name: 'Posts',
 };
 </script>
+
+<style>
+h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #333;
+}
+</style>
