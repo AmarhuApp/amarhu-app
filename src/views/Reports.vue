@@ -1,31 +1,36 @@
 <template>
   <div class="reports">
-    <h2>Reportes de Videos Producidos</h2>
+    <h1>Reportes de Videos Producidos</h1>
+    <div class="summary">
+      <span>Total de Videos: {{ totalVideos }}</span>
+    </div>
     <table class="reports-table">
       <thead>
       <tr>
-        <th>Número</th>
+        <th>#</th>
+        <th>Miniatura</th>
         <th>ID</th>
         <th>Descripción</th>
         <th>Fecha</th>
         <th>Visualizaciones</th>
-        <th>Estimated Revenue</th>
-        <th>Estimated Ad Revenue</th>
-        <th>Views</th>
-        <th>Average View Duration</th>
+        <th>Revenue Estimado</th>
+        <th>Revenue por Anuncios</th>
+        <th>Duración Promedio de Vista</th>
         <th>RPM</th>
       </tr>
       </thead>
       <tbody>
-      <tr v-for="(video, index) in videos" :key="index">
+      <tr v-for="(video, index) in videos" :key="video.id">
         <td>{{ index + 1 }}</td>
+        <td>
+          <img :src="video.thumbnail" alt="Miniatura" class="thumbnail" />
+        </td>
         <td>{{ video.id }}</td>
         <td>{{ video.description }}</td>
         <td>{{ video.date }}</td>
         <td>{{ video.views }}</td>
         <td>{{ video.estimatedRevenue }}</td>
         <td>{{ video.estimatedAdRevenue }}</td>
-        <td>{{ video.videoViews }}</td>
         <td>{{ video.averageViewDuration }}</td>
         <td>{{ video.rpm }}</td>
       </tr>
@@ -38,68 +43,85 @@
 import axios from "axios";
 
 export default {
-  name: 'Reports',
+  name: "Reports",
   data() {
     return {
-      videos: [], // Aquí almacenaremos los datos obtenidos del servidor
+      totalVideos: 0,
+      videos: [],
     };
   },
-  mounted() {
-    this.fetchVideos(); // Llama a la función cuando el componente se monte
+  created() {
+    this.fetchReportData();
   },
   methods: {
-    async fetchVideos() {
+    async fetchReportData() {
       try {
         const response = await axios.get("http://localhost:3000/videos");
-        this.videos = response.data; // Asigna los datos obtenidos al array de videos
-        console.log("Datos de videos obtenidos del servidor:", this.videos);
+        const data = response.data;
+
+        this.totalVideos = data.length;
+        this.videos = data;
       } catch (error) {
-        console.error("Error al obtener los datos de videos:", error.message);
+        console.error("Error al obtener los datos de reportes:", error);
       }
     },
   },
 };
 </script>
 
-
-
 <style scoped>
 .reports {
   padding: 20px;
-  background-color: #fff;
-  color: #333;
 }
 
-h2 {
+h1 {
   font-size: 24px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.summary {
   margin-bottom: 20px;
-  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #555;
 }
 
 .reports-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
   margin-top: 10px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .reports-table th,
 .reports-table td {
-  padding: 8px 10px;
-  border: 1px solid #eaeaea;
+  padding: 12px 15px;
   text-align: left;
+  color: #181818;
 }
 
-.reports-table th {
+.reports-table thead th {
   background-color: #f5f5f5;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
+  color: #555;
 }
 
-.reports-table tr:nth-child(even) {
+.reports-table tbody tr {
+  border-bottom: 1px solid #eee;
+}
+
+.reports-table tbody tr:hover {
   background-color: #f9f9f9;
 }
 
-.reports-table tr:hover {
-  background-color: #eaeaea;
+.thumbnail {
+  width: 130px;
+  height: auto;
+  border-radius: 10px;
 }
 </style>

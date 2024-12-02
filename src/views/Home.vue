@@ -4,13 +4,13 @@
     <div class="content-wrapper">
       <Sidebar />
       <div class="main-content">
-
         <h2>Total de Videos: {{ totalVideos }}</h2>
 
         <LastVideoPerformance v-if="isHomeRoute" />
         <router-view v-else />
       </div>
-      <NewsFeed />
+      <!-- Oculta el NewsFeed en la sección de Reports -->
+      <NewsFeed v-if="!isReportsRoute" />
     </div>
   </div>
 </template>
@@ -37,9 +37,15 @@ export default {
     };
   },
   computed: {
+    // Verifica si la ruta actual es Home
     isHomeRoute() {
       const route = useRoute();
       return route.path === "/";
+    },
+    // Verifica si la ruta actual es Reports
+    isReportsRoute() {
+      const route = useRoute();
+      return route.path === "/reports";
     },
   },
   created() {
@@ -64,7 +70,6 @@ export default {
   },
 };
 </script>
-
 
 <style scoped>
 .home {
