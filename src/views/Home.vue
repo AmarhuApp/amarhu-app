@@ -9,8 +9,8 @@
         <LastVideoPerformance v-if="isHomeRoute" />
         <router-view v-else />
       </div>
-      <!-- Oculta el NewsFeed en la sección de Reports -->
-      <NewsFeed v-if="!isReportsRoute" />
+      <!-- Mostrar NewsFeed solo si NO estás en /reports o /statistics -->
+      <NewsFeed v-if="isNewsFeedVisible" />
     </div>
   </div>
 </template>
@@ -37,15 +37,14 @@ export default {
     };
   },
   computed: {
-    // Verifica si la ruta actual es Home
     isHomeRoute() {
       const route = useRoute();
       return route.path === "/";
     },
-    // Verifica si la ruta actual es Reports
-    isReportsRoute() {
+    isNewsFeedVisible() {
       const route = useRoute();
-      return route.path === "/reports";
+      // Mostrar NewsFeed solo si no estamos en /reports o /statistics
+      return route.path !== "/reports" && route.path !== "/statistics";
     },
   },
   created() {
@@ -54,9 +53,7 @@ export default {
   methods: {
     async fetchProductionData() {
       try {
-        const response = await axios.get(
-            "http://localhost:3000/resumenProduccion"
-        );
+        const response = await axios.get("http://localhost:3000/resumenProduccion");
         const data = response.data;
 
         // Actualizamos el total de videos desde la API

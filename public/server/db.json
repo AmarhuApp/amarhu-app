@@ -60,5 +60,47 @@
       "rpm": 0.65,
       "thumbnail": "/server/images/image-1.png"
     }
+  ],
+  "topProducers": [
+    {
+      "id": 1,
+      "name": "Juan Pérez",
+      "videoCount": 25,
+      "fallenVideos": 2,
+      "netEarnings": 1500.5,
+      "totalProductionCost": 500
+    },
+    {
+      "id": 2,
+      "name": "María López",
+      "videoCount": 20,
+      "fallenVideos": 1,
+      "netEarnings": 1200.8,
+      "totalProductionCost": 400
+    },
+    {
+      "id": 3,
+      "name": "Carlos Sánchez",
+      "videoCount": 18,
+      "fallenVideos": 3,
+      "netEarnings": 1000.3,
+      "totalProductionCost": 450
+    },
+    {
+      "id": 4,
+      "name": "Ana Morales",
+      "videoCount": 15,
+      "fallenVideos": 0,
+      "netEarnings": 900.2,
+      "totalProductionCost": 300
+    },
+    {
+      "id": 5,
+      "name": "Luis Gómez",
+      "videoCount": 10,
+      "fallenVideos": 1,
+      "netEarnings": 600.4,
+      "totalProductionCost": 250
+    }
   ]
 }
