@@ -38,11 +38,11 @@ export default {
 
 <style scoped>
 .sidebar {
-  width: 250px;
+  width: 220px;
   background-color: #ffffff;
   padding: 20px;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  border-right: 1px solid #e0e0e0;
+  box-shadow: 1px 0 1px rgba(0, 0, 0, 0.1);
+  border-right: 1px #e0e0e0;
 }
 
 .sidebar ul {

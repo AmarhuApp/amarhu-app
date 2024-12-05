@@ -1,79 +1,68 @@
 <template>
   <div class="video-performance">
     <h3>Resumen de Producción</h3>
-
-    <table v-if="productionData" class="production-table">
-      <tbody>
-      <tr>
-        <td class="label">Directivo:</td>
-        <td class="value">{{ productionData.directivo }}</td>
-      </tr>
-      <tr>
-        <td class="label">Código de directivo:</td>
-        <td class="value">{{ productionData.codigoDirectivo }}</td>
-      </tr>
-      <tr>
-        <td class="label">Total de Videos:</td>
-        <td class="value">{{ productionData.totalVideos }}</td>
-      </tr>
-      <tr>
-        <td class="label">Filtro de caídos:</td>
-        <td class="value">{{ productionData.filtroCaidos }}</td>
-      </tr>
-      <tr>
-        <td class="label">Ganancia Total:</td>
-        <td class="value">{{ productionData.gananciaTotal }}</td>
-      </tr>
-      <tr>
-        <td class="label">Ganancia menos impuestos:</td>
-        <td class="value">{{ productionData.gananciaMenosImpuestos }}</td>
-      </tr>
-      <tr>
-        <td class="label">Ganancia Neta:</td>
-        <td class="value">{{ productionData.gananciaNeta }}</td>
-      </tr>
-      <tr>
-        <td class="label">Coste de Producción:</td>
-        <td class="value">{{ productionData.costeProduccion }}</td>
-      </tr>
-      <tr>
-        <td class="label">Coste Total de Producción:</td>
-        <td class="value">{{ productionData.costeTotalProduccion }}</td>
-      </tr>
-      <tr>
-        <td class="label">Total Generado por Videos Caídos:</td>
-        <td class="value">{{ productionData.totalGeneradoPorCaidos }}</td>
-      </tr>
-      </tbody>
-    </table>
-    <p v-else>Cargando datos...</p>
-
-    <!-- Botón para desplazamiento -->
-    <div class="button-container">
-      <button @click="scrollToChart">Ver Gráfica Comparativa</button>
-    </div>
-
-    <!-- Contenedor para la gráfica y la lista -->
-    <div class="content">
+    <div class="horizontal-container">
+      <!-- Contenedor del resumen -->
+      <div>
+        <table v-if="productionData" class="production-table">
+          <tbody>
+          <tr>
+            <td class="label">Directivo:</td>
+            <td class="value">{{ productionData.directivo }}</td>
+          </tr>
+          <tr>
+            <td class="label">Código de directivo:</td>
+            <td class="value">{{ productionData.codigoDirectivo }}</td>
+          </tr>
+          <tr>
+            <td class="label">Total de Videos:</td>
+            <td class="value">{{ productionData.totalVideos }}</td>
+          </tr>
+          <tr>
+            <td class="label">Filtro de caídos:</td>
+            <td class="value">{{ productionData.filtroCaidos }}</td>
+          </tr>
+          <tr>
+            <td class="label">Ganancia Total:</td>
+            <td class="value">{{ productionData.gananciaTotal }}</td>
+          </tr>
+          <tr>
+            <td class="label">Ganancia menos impuestos:</td>
+            <td class="value">{{ productionData.gananciaMenosImpuestos }}</td>
+          </tr>
+          <tr>
+            <td class="label">Ganancia Neta:</td>
+            <td class="value">{{ productionData.gananciaNeta }}</td>
+          </tr>
+          <tr>
+            <td class="label">Coste de Producción:</td>
+            <td class="value">{{ productionData.costeProduccion }}</td>
+          </tr>
+          <tr>
+            <td class="label">Coste Total de Producción:</td>
+            <td class="value">{{ productionData.costeTotalProduccion }}</td>
+          </tr>
+          <tr>
+            <td class="label">Total Generado por Videos Caídos:</td>
+            <td class="value">{{ productionData.totalGeneradoPorCaidos }}</td>
+          </tr>
+          </tbody>
+        </table>
+        <p v-else>Cargando datos...</p>
+      </div>
       <!-- Contenedor de la gráfica -->
       <div ref="chart" class="chart-container">
         <h3>Comparación de Producción</h3>
         <canvas id="radarChart"></canvas>
-      </div>
-
-      <!-- Lista de valores máximos -->
-      <div class="max-values-list">
-        <h4>Valores Máximos (10):</h4>
-        <ul>
-          <li v-for="(value, category) in maxValues" :key="category">
-            <strong>{{ category }}:</strong> {{ value }}
-          </li>
-        </ul>
+        <div class="button-container">
+          <button @click="goToStats" class="circle-button">
+            <span>Go Stats</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
-
 
 
 
@@ -97,6 +86,9 @@ export default {
     this.setMaxValues();
   },
   methods: {
+    goToStats() {
+      this.$router.push("/statistics");
+    },
     async fetchProductionData() {
       try {
         // Fetch current month's production data
@@ -174,7 +166,7 @@ export default {
             "Filtro Caídos",
             "Ganancia Total",
             "Ganancia Neta",
-            "Coste Total Producción",
+            "Coste Producción",
           ],
           datasets: [
             {
@@ -231,13 +223,23 @@ export default {
 
 
 <style scoped>
+
+.horizontal-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .video-performance {
-  background-color: #fff;
+  background-color: #ffffff;
   color: #333;
   padding: 20px;
-  max-width: 800px;
-  margin: auto;
-  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 900px;
+  margin: 5px auto;
 }
 
 h3 {
@@ -246,20 +248,22 @@ h3 {
   margin-bottom: 15px;
   text-align: center;
   color: #333;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 2px solid #ddd;
   padding-bottom: 5px;
 }
 
 .production-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 16px;
-  margin-top: 10px;
+  flex: 1;
+  min-width: 40%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 15px;
 }
 
 .production-table td {
-  padding: 8px 12px; /* Reducido para un diseño compacto */
-  border-bottom: 1px solid #eaeaea;
+  padding: 10px;
+  border-bottom: 1px solid #dfdede;
 }
 
 .production-table tr:last-child td {
@@ -284,32 +288,13 @@ h3 {
   width: 40%;
 }
 
-.button-container {
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
-}
-
-button {
-  background-color: #4caf50;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s;
-}
-
-button:hover {
-  background-color: #45a049;
-}
 
 .chart-container {
-  margin-top: 30px;
-  height: 400px;
+  margin-top: 10px;
+  height: 300px;
   position: relative; /* Necesario para la posición absoluta de la card */
   text-align: center;
+  padding-right: max(19px);
 }
 
 .max-values-list {
@@ -350,6 +335,35 @@ button:hover {
   color: #333;
 }
 
+.circle-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  height: 60px;
+  border: 3px solid #8a8a8a; /* Borde circular */
+  border-radius: 50%; /* Hace el botón circular */
+  background-color: transparent; /* Fondo transparente */
+  color: #333; /* Color del texto y borde */
+  font-size: 10px; /* Tamaño del texto */
+  font-weight: bold; /* Negrita */
+  cursor: pointer; /* Manito al pasar */
+  transition: transform 0.3s, background-color 0.3s;
+  text-align: center;
+}
+
+.circle-button:hover {
+  background-color: #f0f0f0; /* Fondo claro al pasar */
+  transform: scale(1.1); /* Animación al hacer hover */
+}
+
+.circle-button span {
+  transform: rotate(0); /* Texto alineado horizontalmente */
+  text-align: center;
+}
+
+
+
 @media (max-width: 768px) {
   .max-values-list {
     position: static; /* Cambia a posición normal en pantallas pequeñas */
@@ -358,7 +372,12 @@ button:hover {
     font-size: 14px; /* Ajusta el texto en pantallas pequeñas */
   }
 
+  .horizontal-container {
+    flex-direction: column;
+  }
+
   .chart-container {
+    width: 100%;
     height: 350px;
   }
 }

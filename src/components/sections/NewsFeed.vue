@@ -3,7 +3,7 @@
     <h2 class="news-title">Últimas Noticias</h2>
     <div v-for="post in posts" :key="post.id" class="post">
       <div class="post-image" v-if="post.image">
-        <img :src="post.image" alt="Post image" />
+        <img :src="post.image" alt="Imagen de la noticia" />
       </div>
       <div class="post-content">
         <div class="post-header">
@@ -19,38 +19,33 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "NewsFeed",
   data() {
     return {
-      posts: [
-        {
-          id: 1,
-          title: "Noticia 1",
-          content: "Contenido de la noticia 1...",
-          liked: false,
-          image: "/assets/image-1.png",
-        },
-        {
-          id: 2,
-          title: "Noticia 2",
-          content: "Contenido de la noticia 2...",
-          liked: false,
-          image: "/assets/image-2.png",
-        },
-        {
-          id: 3,
-          title: "Noticia 3",
-          content: "Contenido de la noticia 3...",
-          liked: false,
-        },
-      ],
+      posts: [], // Inicialmente vacío para rellenar desde la API
     };
   },
   methods: {
+    async fetchNews() {
+      try {
+        const response = await axios.get("http://localhost:3000/noticias");
+        this.posts = response.data.map((post) => ({
+          ...post,
+          liked: false, // Agrega el estado `liked` por defecto
+        }));
+      } catch (error) {
+        console.error("Error al cargar noticias:", error.message);
+      }
+    },
     toggleLike(post) {
       post.liked = !post.liked;
     },
+  },
+  created() {
+    this.fetchNews();
   },
 };
 </script>
@@ -60,11 +55,19 @@ export default {
   width: 370px;
   background-color: #ffffff;
   padding: 20px;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   border-left: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Ocultar en pantallas pequeñas */
+@media (max-width: 768px) {
+  .news-feed {
+    display: none;
+  }
 }
 
 .news-title {
@@ -76,18 +79,24 @@ export default {
 
 .post {
   display: flex;
-  background-color: #f9f9f9;
+  background-color: rgba(250, 250, 250, 0.95);
   padding: 15px;
   margin-bottom: 20px;
-  border-radius: 5px;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease-in-out;
+}
+
+.post:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .post-image img {
-  width: 145px;
-  height: 90px;
-  border-radius: 4px;
+  width: 120px;
+  height: 80px;
+  border-radius: 5px;
   margin-right: 10px;
+  object-fit: cover;
 }
 
 .post-content {
@@ -125,3 +134,4 @@ export default {
   color: red;
 }
 </style>
+

@@ -3,15 +3,12 @@
     <h1>Estadísticas</h1>
     <div class="charts">
       <div class="chart" id="chart1">
-        <h3>Total de Ganancias por Mes</h3>
         <canvas ref="chart1"></canvas>
       </div>
       <div class="chart" id="chart2">
-        <h3>Duración Promedio de Vista</h3>
         <canvas ref="chart2"></canvas>
       </div>
       <div class="chart" id="chart3">
-        <h3>Ganancias vs Coste de Producción</h3>
         <canvas ref="chart3"></canvas>
       </div>
     </div>
@@ -27,9 +24,9 @@
       </thead>
       <tbody>
       <tr v-for="(producer, index) in topProducers" :key="producer.id">
-        <td>{{ index + 1 }}</td>
-        <td>{{ producer.name }}</td>
-        <td>{{ producer.videoCount }}</td>
+        <td class="rank">{{ index + 1 }}</td>
+        <td class="name">{{ producer.name }}</td>
+        <td class="video-count">{{ producer.videoCount }}</td>
       </tr>
       </tbody>
     </table>
@@ -88,13 +85,33 @@ export default {
                 this.resumenProduccionMesPasado.gananciaTotal,
                 this.resumenProduccion.gananciaTotal,
               ],
-              backgroundColor: ["#4CAF50", "#FF9800"],
+              backgroundColor: ["#3E95CD", "#FF6384"],
+              hoverBackgroundColor: ["rgba(62,149,205,0.76)", "rgba(255,99,132,0.82)"],
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "top" },
+            title: {
+              display: true,
+              text: "Ganancias por Mes (S/.)",
+              font: { size: 16 },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "Ganancias (S/.)" },
+              grid: { color: "#E0E0E0" },
+            },
+            x: {
+              title: { display: true, text: "Mes" },
+              grid: { display: false },
+            },
+          },
         },
       });
 
@@ -108,19 +125,40 @@ export default {
               label: "Duración Promedio (segundos)",
               data: this.videos.map((video) => video.averageViewDuration),
               borderColor: "#3E95CD",
-              fill: false,
+              fill: true,
+              backgroundColor: "rgba(62, 149, 205, 0.2)",
+              tension: 0.4,
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "top" },
+            title: {
+              display: true,
+              text: "Duración Promedio de Vista (segundos)",
+              font: { size: 16 },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "Segundos" },
+              grid: { color: "#E0E0E0" },
+            },
+            x: {
+              title: { display: true, text: "Fecha" },
+              grid: { display: false },
+            },
+          },
         },
       });
 
       // Gráfica 3: Ganancias vs Coste de Producción
       new Chart(this.$refs.chart3, {
-        type: "pie",
+        type: "doughnut",
         data: {
           labels: ["Ganancias Netas", "Coste Total de Producción"],
           datasets: [
@@ -130,12 +168,21 @@ export default {
                 this.resumenProduccion.costeTotalProduccion,
               ],
               backgroundColor: ["#FF6384", "#36A2EB"],
+              hoverBackgroundColor: ["#FF4D6A", "#2B90E4"],
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "top" },
+            title: {
+              display: true,
+              text: "Ganancias vs Coste de Producción",
+              font: { size: 16 },
+            },
+          },
         },
       });
     },
@@ -148,30 +195,38 @@ export default {
 
 <style scoped>
 .statistics {
-  padding: 20px;
+  padding: 5px;
 }
 
-h1,
+h1{
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
 h2 {
   font-size: 24px;
   color: #333;
   margin-bottom: 20px;
+  padding-top: 20px;
 }
 
 .charts {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  justify-content: space-between;
 }
 
 .chart {
   flex: 1;
-  min-width: 300px;
-  height: 300px;
-  background: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
+  max-width: 450px;
+  height: 350px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   padding: 15px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -179,29 +234,63 @@ h2 {
 }
 
 .chart h3 {
+  font-size: 18px;
   margin-bottom: 10px;
-  font-size: 16px;
-  color: #555;
+  color: #444;
+  text-align: center;
 }
 
 .top-producers-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: 20px;
+  background-color: rgb(255, 255, 255); /* Fondo oscuro */
+  color: #333333; /* Texto claro */
+  border-radius: 8px; /* Bordes redondeados */
+  overflow: hidden; /* Oculta bordes */
 }
 
-.top-producers-table th,
-.top-producers-table td {
-  padding: 12px 15px;
+
+.top-producers-table thead {
+  background-color: rgba(234, 234, 234, 0.27); /* Fondo ligeramente más claro */
+}
+
+.top-producers-table th {
+  padding: 12px 16px;
   text-align: left;
-  border: 1px solid #e0e0e0;
-  color: #181818;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333333;
+  border-bottom: 1px solid #444444; /* Línea de separación */
 }
 
-.top-producers-table thead th {
-  background-color: #f5f5f5;
-  font-size: 16px;
-  font-weight: 600;
-  color: #555;
+.top-producers-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.top-producers-table tbody tr:hover {
+  background-color: #ffffff; /* Efecto hover */
+}
+
+.top-producers-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #ffffff;
+  border-bottom: 1px solid #444444; /* Líneas entre filas */
+}
+
+.top-producers-table .rank {
+  color: #333333; /* Número menos destacado */
+}
+
+.top-producers-table .name {
+  font-weight: bold;
+  color: #333333;
+}
+
+.top-producers-table .video-count {
+  text-align: left;
+  color: #333333;
 }
 </style>

@@ -102,5 +102,25 @@
       "netEarnings": 600.4,
       "totalProductionCost": 250
     }
+  ],
+  "noticias": [
+    {
+      "id": 1,
+      "title": "El impacto de la IA en la sociedad",
+      "content": "Un análisis sobre cómo la inteligencia artificial está cambiando la vida cotidiana.",
+      "image": "/server/images/image-1.png"
+    },
+    {
+      "id": 2,
+      "title": "Avances en la exploración espacial",
+      "content": "Nuevas misiones hacia Marte están en desarrollo con tecnologías innovadoras.",
+      "image": "/server/images/image-2.png"
+    },
+    {
+      "id": 3,
+      "title": "Economía global en transformación",
+      "content": "El auge de las criptomonedas y su impacto en los mercados tradicionales.",
+      "image": "/server/images/image-3.png"
+    }
   ]
 }

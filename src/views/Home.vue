@@ -4,8 +4,6 @@
     <div class="content-wrapper">
       <Sidebar />
       <div class="main-content">
-        <h2>Total de Videos: {{ totalVideos }}</h2>
-
         <LastVideoPerformance v-if="isHomeRoute" />
         <router-view v-else />
       </div>
