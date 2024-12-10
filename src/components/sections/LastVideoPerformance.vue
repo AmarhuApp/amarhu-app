@@ -1,69 +1,125 @@
 <template>
   <div class="video-performance">
-    <h3>Resumen de Producción</h3>
-    <div class="horizontal-container">
-      <!-- Contenedor del resumen -->
-      <div>
-        <table v-if="productionData" class="production-table">
-          <tbody>
-          <tr>
-            <td class="label">Directivo:</td>
-            <td class="value">{{ productionData.directivo }}</td>
-          </tr>
-          <tr>
-            <td class="label">Código de directivo:</td>
-            <td class="value">{{ productionData.codigoDirectivo }}</td>
-          </tr>
-          <tr>
-            <td class="label">Total de Videos:</td>
-            <td class="value">{{ productionData.totalVideos }}</td>
-          </tr>
-          <tr>
-            <td class="label">Filtro de caídos:</td>
-            <td class="value">{{ productionData.filtroCaidos }}</td>
-          </tr>
-          <tr>
-            <td class="label">Ganancia Total:</td>
-            <td class="value">{{ productionData.gananciaTotal }}</td>
-          </tr>
-          <tr>
-            <td class="label">Ganancia menos impuestos:</td>
-            <td class="value">{{ productionData.gananciaMenosImpuestos }}</td>
-          </tr>
-          <tr>
-            <td class="label">Ganancia Neta:</td>
-            <td class="value">{{ productionData.gananciaNeta }}</td>
-          </tr>
-          <tr>
-            <td class="label">Coste de Producción:</td>
-            <td class="value">{{ productionData.costeProduccion }}</td>
-          </tr>
-          <tr>
-            <td class="label">Coste Total de Producción:</td>
-            <td class="value">{{ productionData.costeTotalProduccion }}</td>
-          </tr>
-          <tr>
-            <td class="label">Total Generado por Videos Caídos:</td>
-            <td class="value">{{ productionData.totalGeneradoPorCaidos }}</td>
-          </tr>
-          </tbody>
-        </table>
-        <p v-else>Cargando datos...</p>
+    <!-- Navegación de pestañas -->
+    <div class="tab-container">
+      <button
+          :class="{'active-tab': activeTab === 'produccion'}"
+          @click="activeTab = 'produccion'">
+        Resumen de Producción
+      </button>
+      <button
+          :class="{'active-tab': activeTab === 'jr'}"
+          @click="activeTab = 'jr'">
+        Resumen JR's
+      </button>
+    </div>
+
+    <!-- Contenido de Resumen de Producción -->
+    <div v-if="activeTab === 'produccion'">
+      <h3>Resumen de Producción</h3>
+      <div class="horizontal-container">
+        <!-- Contenedor del resumen -->
+        <div>
+          <table v-if="productionData" class="production-table">
+            <tbody>
+            <tr>
+              <td class="label">Directivo:</td>
+              <td class="value">{{ productionData.directivo }}</td>
+            </tr>
+            <tr>
+              <td class="label">Código de directivo:</td>
+              <td class="value">{{ productionData.codigoDirectivo }}</td>
+            </tr>
+            <tr>
+              <td class="label">Total de Videos:</td>
+              <td class="value">{{ productionData.totalVideos }}</td>
+            </tr>
+            <tr>
+              <td class="label">Filtro de caídos:</td>
+              <td class="value">{{ productionData.filtroCaidos }}</td>
+            </tr>
+            <tr>
+              <td class="label">Ganancia Total:</td>
+              <td class="value">{{ productionData.gananciaTotal }}</td>
+            </tr>
+            <tr>
+              <td class="label">Ganancia menos impuestos:</td>
+              <td class="value">{{ productionData.gananciaMenosImpuestos }}</td>
+            </tr>
+            <tr>
+              <td class="label">Ganancia Neta:</td>
+              <td class="value">{{ productionData.gananciaNeta }}</td>
+            </tr>
+            <tr>
+              <td class="label">Coste de Producción:</td>
+              <td class="value">{{ productionData.costeProduccion }}</td>
+            </tr>
+            <tr>
+              <td class="label">Coste Total de Producción:</td>
+              <td class="value">{{ productionData.costeTotalProduccion }}</td>
+            </tr>
+            <tr>
+              <td class="label">Total Generado por Videos Caídos:</td>
+              <td class="value">{{ productionData.totalGeneradoPorCaidos }}</td>
+            </tr>
+            </tbody>
+          </table>
+          <p v-else>Cargando datos...</p>
+        </div>
+        <!-- Contenedor de la gráfica -->
+        <div ref="chart" class="chart-container">
+          <h3>Comparación de Producción</h3>
+          <canvas id="radarChart"></canvas>
+          <div class="button-container">
+            <button @click="goToStats" class="circle-button">
+              <span>Go Stats</span>
+            </button>
+          </div>
+        </div>
       </div>
-      <!-- Contenedor de la gráfica -->
-      <div ref="chart" class="chart-container">
-        <h3>Comparación de Producción</h3>
-        <canvas id="radarChart"></canvas>
-        <div class="button-container">
-          <button @click="goToStats" class="circle-button">
-            <span>Go Stats</span>
-          </button>
+    </div>
+
+    <!-- Contenido de Resumen JR's -->
+    <div v-if="activeTab === 'jr'" class="ranking-container">
+      <div
+          class="jr-card"
+          v-for="(jefe, index) in sortedJefes"
+          :key="jefe.id"
+      >
+        <!-- Encabezado -->
+        <div class="jr-header">
+          <span class="jr-position">#{{ index + 1 }}</span>
+          <span class="jr-name">{{ jefe.nombre }}</span>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="jr-stats">
+          <div class="jr-stat-item">
+            <span class="jr-stat-label">Producción Total</span>
+            <span class="jr-stat-value">{{ jefe.produccionTotal }}</span>
+          </div>
+          <div class="jr-stat-item">
+            <span class="jr-stat-label">Ganancias Totales</span>
+            <span class="jr-stat-value">{{ jefe.gananciasTotales }}</span>
+          </div>
+          <div class="jr-stat-item">
+            <span class="jr-stat-label">Ganancias Netas</span>
+            <span class="jr-stat-value">{{ jefe.gananciasNetas }}</span>
+          </div>
+          <div class="jr-stat-item">
+            <span class="jr-stat-label">Número de Caídos</span>
+            <span class="jr-stat-value">{{ jefe.numeroCaidos }}</span>
+          </div>
+        </div>
+
+        <!-- Ganancia promedio destacada -->
+        <div class="jr-gain">
+          Ganancia Promedio: {{ jefe.gananciaPromedio.toFixed(2) }}
         </div>
       </div>
     </div>
   </div>
 </template>
-
 
 
 <script>
@@ -76,14 +132,18 @@ export default {
   name: "VideoPerformance",
   data() {
     return {
+      activeTab: "produccion", // Controla la pestaña activa
       productionData: null,
       productionDataLastMonth: null,
       maxValues: {}, // Almacena los valores máximos que representan el 10 en cada categoría
+      jrData: null, // Datos para el resumen JR's
+      chartInstance: null, // Referencia a la instancia de la gráfica
     };
   },
   mounted() {
     this.fetchProductionData();
     this.setMaxValues();
+    this.fetchJRData(); // Cargar datos de JR's
   },
   methods: {
     goToStats() {
@@ -107,10 +167,27 @@ export default {
         }
       } catch (error) {
         console.error("Error al obtener los datos de la API:", error.message);
-        console.error("Detalles del error:", error.response?.data || error);
       }
     },
+    async fetchJRData() {
+      try {
+        // Fetch data for Resumen JR's
+        const response = await axios.get("http://localhost:3000/rankingJRs");
+        console.log("Datos de Resumen JR's:", response.data);
 
+        // Procesar datos de JR
+        this.jrData = response.data.map((jr) => {
+          return {
+            ...jr,
+            gananciaPromedio: jr.produccionTotal
+                ? jr.gananciasNetas / jr.produccionTotal
+                : 0, // Evita división por 0
+          };
+        });
+      } catch (error) {
+        console.error("Error al obtener los datos de JR's:", error.message);
+      }
+    },
     normalizeData() {
       // Definir rangos específicos para cada categoría
       const categoryRanges = {
@@ -138,7 +215,6 @@ export default {
         costeTotalProduccion: normalizeCategory("costeTotalProduccion"),
       };
     },
-
     setMaxValues() {
       // Valores máximos correspondientes al 10 en cada categoría
       this.maxValues = {
@@ -149,80 +225,97 @@ export default {
         "Coste Total Producción": 30000,
       };
     },
-
-    scrollToChart() {
-      this.$refs.chart.scrollIntoView({ behavior: "smooth" });
-    },
-
     renderChart() {
+      if (this.chartInstance) {
+        this.chartInstance.destroy(); // Destruye la gráfica existente antes de crear una nueva
+      }
+
       const normalizedData = this.normalizeData();
 
-      const ctx = document.getElementById("radarChart").getContext("2d");
-      new Chart(ctx, {
-        type: "radar",
-        data: {
-          labels: [
-            "Total Videos",
-            "Filtro Caídos",
-            "Ganancia Total",
-            "Ganancia Neta",
-            "Coste Producción",
-          ],
-          datasets: [
-            {
-              label: "Este Mes",
-              data: [
-                normalizedData.totalVideos.current,
-                normalizedData.filtroCaidos.current,
-                normalizedData.gananciaTotal.current,
-                normalizedData.gananciaNeta.current,
-                normalizedData.costeTotalProduccion.current,
-              ],
-              backgroundColor: "rgba(54, 162, 235, 0.5)",
-              borderColor: "rgba(54, 162, 235, 1)",
-              borderWidth: 2,
-            },
-            {
-              label: "Mes Pasado",
-              data: [
-                normalizedData.totalVideos.lastMonth,
-                normalizedData.filtroCaidos.lastMonth,
-                normalizedData.gananciaTotal.lastMonth,
-                normalizedData.gananciaNeta.lastMonth,
-                normalizedData.costeTotalProduccion.lastMonth,
-              ],
-              backgroundColor: "rgba(255, 99, 132, 0.5)",
-              borderColor: "rgba(255, 99, 132, 1)",
-              borderWidth: 2,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "top",
-            },
+      this.$nextTick(() => {
+        const ctx = document.getElementById("radarChart").getContext("2d");
+        this.chartInstance = new Chart(ctx, {
+          type: "radar",
+          data: {
+            labels: [
+              "Total Videos",
+              "Filtro Caídos",
+              "Ganancia Total",
+              "Ganancia Neta",
+              "Coste Producción",
+            ],
+            datasets: [
+              {
+                label: "Este Mes",
+                data: [
+                  normalizedData.totalVideos.current,
+                  normalizedData.filtroCaidos.current,
+                  normalizedData.gananciaTotal.current,
+                  normalizedData.gananciaNeta.current,
+                  normalizedData.costeTotalProduccion.current,
+                ],
+                backgroundColor: "rgba(54, 162, 235, 0.5)",
+                borderColor: "rgba(54, 162, 235, 1)",
+                borderWidth: 2,
+              },
+              {
+                label: "Mes Pasado",
+                data: [
+                  normalizedData.totalVideos.lastMonth,
+                  normalizedData.filtroCaidos.lastMonth,
+                  normalizedData.gananciaTotal.lastMonth,
+                  normalizedData.gananciaNeta.lastMonth,
+                  normalizedData.costeTotalProduccion.lastMonth,
+                ],
+                backgroundColor: "rgba(255, 99, 132, 0.5)",
+                borderColor: "rgba(255, 99, 132, 1)",
+                borderWidth: 2,
+              },
+            ],
           },
-          scales: {
-            r: {
-              min: 1, // Escala mínima
-              max: 10, // Escala máxima
-              ticks: {
-                stepSize: 1, // Intervalos claros
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "top",
+              },
+            },
+            scales: {
+              r: {
+                min: 1, // Escala mínima
+                max: 10, // Escala máxima
+                ticks: {
+                  stepSize: 1, // Intervalos claros
+                },
               },
             },
           },
-        },
+        });
       });
+    },
+  },
+  watch: {
+    activeTab(newValue) {
+      if (newValue === "produccion" && this.productionData && this.productionDataLastMonth) {
+        this.renderChart(); // Renderiza la gráfica al volver a la pestaña "produccion"
+      }
+    },
+  },
+  computed: {
+    sortedJefes() {
+      // Ordena los jefes por ganancia promedio en orden descendente
+      return this.jrData
+          ? [...this.jrData].sort((a, b) => b.gananciaPromedio - a.gananciaPromedio)
+          : [];
     },
   },
 };
 </script>
 
-
 <style scoped>
+
+/* Mantiene todos los estilos originales */
 
 .horizontal-container {
   display: flex;
@@ -288,27 +381,12 @@ h3 {
   width: 40%;
 }
 
-
 .chart-container {
   margin-top: 10px;
   height: 300px;
   position: relative; /* Necesario para la posición absoluta de la card */
   text-align: center;
   padding-right: max(19px);
-}
-
-.max-values-list {
-  position: absolute; /* Posiciona la card dentro del contenedor de la gráfica */
-  top: 640px; /* Ajusta la altura respecto a la gráfica */
-  right: 10px; /* Posiciona hacia la derecha dentro del contenedor */
-  width: 155px; /* Ancho reducido para un diseño compacto */
-  background-color: #ffffff;
-  border: 1px solid #ffffff;
-  border-radius: 6px;
-  padding: 10px; /* Reducido para menos espacio interno */
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* Sombra más sutil */
-  text-align: left;
-  font-size: 12px; /* Texto más pequeño */
 }
 
 .max-values-list h4 {
@@ -362,15 +440,122 @@ h3 {
   text-align: center;
 }
 
+/* NUEVO: Estilos para pestañas */
 
+.tab-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.tab-container button {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background-color: transparent;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-container button:hover {
+  color: #007bff;
+}
+
+.tab-container button.active-tab {
+  border-bottom: 2px solid #007bff; /* Subraya solo la pestaña activa */
+  color: #007bff;
+}
+
+/* NUEVO: Estilos para el ranking de jefes */
+
+.ranking-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Tarjeta para cada JR */
+.jr-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.jr-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Encabezado con posición y nombre */
+.jr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.jr-position {
+  font-size: 18px;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.jr-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-left: 10px;
+}
+
+/* Contenedor de estadísticas */
+.jr-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 10px;
+  column-gap: 15px;
+  width: 100%;
+}
+
+.jr-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.jr-stat-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.jr-stat-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.jr-gain {
+  color: #333;
+  padding-top: 10px;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* Media Queries */
 
 @media (max-width: 768px) {
-  .max-values-list {
-    position: static; /* Cambia a posición normal en pantallas pequeñas */
-    width: 100%;
-    margin: 20px 0;
-    font-size: 14px; /* Ajusta el texto en pantallas pequeñas */
-  }
 
   .horizontal-container {
     flex-direction: column;
@@ -380,7 +565,45 @@ h3 {
     width: 100%;
     height: 350px;
   }
+
+  .tab-container button {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+
+  .ranking-table th,
+  .ranking-table td {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .ranking-container {
+    padding: 15px;
+  }
+
+  .ranking-container h4 {
+    font-size: 18px;
+  }
+
+  .jr-card {
+    padding: 15px;
+  }
+
+  .jr-position {
+    font-size: 16px;
+  }
+
+  .jr-name {
+    font-size: 16px;
+  }
+
+  .jr-stat-item {
+    font-size: 14px;
+  }
+
 }
+
 </style>
+
 
 

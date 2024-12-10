@@ -122,5 +122,43 @@
       "content": "El auge de las criptomonedas y su impacto en los mercados tradicionales.",
       "image": "/server/images/image-3.png"
     }
+  ],
+  "rankingJRs":[
+    {
+      "id": 1,
+      "nombre": "Carlos Rodríguez",
+      "produccionTotal": 500,
+      "gananciasTotales": 25000,
+      "gananciasNetas": 20000,
+      "caidos": 10,
+      "gananciaPromedio": 40
+    },
+    {
+      "id": 2,
+      "nombre": "Ana López",
+      "produccionTotal": 300,
+      "gananciasTotales": 15000,
+      "gananciasNetas": 13500,
+      "caidos": 5,
+      "gananciaPromedio": 45
+    },
+    {
+      "id": 3,
+      "nombre": "Miguel Sánchez",
+      "produccionTotal": 600,
+      "gananciasTotales": 27000,
+      "gananciasNetas": 22000,
+      "caidos": 15,
+      "gananciaPromedio": 36.67
+    },
+    {
+      "id": 4,
+      "nombre": "Lucía Fernández",
+      "produccionTotal": 400,
+      "gananciasTotales": 19000,
+      "gananciasNetas": 18000,
+      "caidos": 7,
+      "gananciaPromedio": 45
+    }
   ]
 }

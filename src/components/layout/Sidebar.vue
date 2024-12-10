@@ -1,48 +1,83 @@
 <template>
-  <div class="sidebar">
-    <ul>
-      <li>
-        <router-link to="/">
-          <span class="material-icons icon">home</span> Home
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/posts">
-          <span class="material-icons icon">article</span> Posts
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/statistics">
-          <span class="material-icons icon">bar_chart</span> Statistics
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/reports">
-          <span class="material-icons icon">description</span> Reports
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/settings">
-          <span class="material-icons icon">settings</span> Settings
-        </router-link>
-      </li>
-    </ul>
+  <div>
+    <!-- Botón del menú de hamburguesa -->
+    <button class="hamburger-menu" @click="toggleSidebar">
+      <span class="material-icons">menu</span>
+    </button>
+
+    <!-- Sidebar -->
+    <div :class="['sidebar', { 'collapsed': isCollapsed, 'hidden': isHidden }]">
+      <ul>
+        <li>
+          <router-link to="/">
+            <span class="material-icons icon">home</span>
+            <span v-if="!isCollapsed">Home</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/posts">
+            <span class="material-icons icon">article</span>
+            <span v-if="!isCollapsed">Posts</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/statistics">
+            <span class="material-icons icon">bar_chart</span>
+            <span v-if="!isCollapsed">Statistics</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/reports">
+            <span class="material-icons icon">description</span>
+            <span v-if="!isCollapsed">Reports</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/settings">
+            <span class="material-icons icon">settings</span>
+            <span v-if="!isCollapsed">Settings</span>
+          </router-link>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
+
 
 <script>
 export default {
   name: "Sidebar",
+  data() {
+    return {
+      isCollapsed: false, // Estado para hacer más fina la sidebar
+      isHidden: false, // Estado para ocultar la sidebar en pantallas pequeñas
+    };
+  },
+  methods: {
+    toggleSidebar() {
+      this.isHidden = !this.isHidden; // Alternar entre mostrar y ocultar el menú de hamburguesa
+    },
+  },
 };
 </script>
 
+
 <style scoped>
+
 .sidebar {
-  width: 220px;
+  width: 200px;
   background-color: #ffffff;
   padding: 20px;
   box-shadow: 1px 0 1px rgba(0, 0, 0, 0.1);
-  border-right: 1px #e0e0e0;
+  transition: width 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+}
+
+.sidebar.hidden {
+  transform: translateX(-100%);
 }
 
 .sidebar ul {
@@ -72,5 +107,71 @@ export default {
   margin-right: 10px;
   font-size: 24px;
   color: #666;
+}
+
+.sidebar.collapsed .icon {
+  margin-right: 0;
+  text-align: center;
+}
+
+.hamburger-menu {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: #ffffff;
+  border: none;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  z-index: 1000;
+  padding: 10px;
+}
+
+.hamburger-menu .material-icons {
+  font-size: 24px;
+  color: #333;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 60px;
+  }
+
+  .sidebar ul {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sidebar li {
+    margin: 20px 0;
+  }
+
+  .sidebar a span:not(.icon) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .hamburger-menu {
+    display: block;
+  }
+
+  .sidebar.hidden {
+    position: fixed;
+    transform: translateX(-100%);
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 999;
+  }
+
+  .sidebar ul {
+    flex-direction: column;
+  }
+
+  .sidebar li {
+    margin: 20px 0;
+  }
 }
 </style>

@@ -277,7 +277,7 @@ h2 {
   padding: 12px 16px;
   font-size: 14px;
   color: #ffffff;
-  border-bottom: 1px solid #444444; /* Líneas entre filas */
+  border-bottom: 1px solid rgba(68, 68, 68, 0.42); /* Líneas entre filas */
 }
 
 .top-producers-table .rank {
