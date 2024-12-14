@@ -26,6 +26,7 @@
   "videos": [
     {
       "id": "kU5JGfIYMOk",
+      "title": "Estados Unidos de Locos",
       "description": "¡Los estadounidenses perdieron la chaveta! ...",
       "date": "01 - August - 2024",
       "views": 22755,
@@ -38,6 +39,7 @@
     },
     {
       "id": "exampleID02",
+      "title": "El Salvador en peligro",
       "description": "Otro video producido...",
       "date": "02 - August - 2024",
       "views": 20000,
@@ -50,6 +52,7 @@
     },
     {
       "id": "exampleID03",
+      "title": "No sabemos que pasará mañana",
       "description": "Producción impresionante...",
       "date": "03 - August - 2024",
       "views": 18000,
@@ -105,22 +108,32 @@
   ],
   "noticias": [
     {
+      "id": 4,
+      "title": "Bienvenido a Prensa Alternartiva El Jota",
+      "content": "Bienvenido a Prensa Alternativa El Jota, sientete comodo durante tu estadia con nosotros.",
+      "image": "",
+      "date": "2024-12-13"
+    },
+    {
       "id": 1,
       "title": "El impacto de la IA en la sociedad",
       "content": "Un análisis sobre cómo la inteligencia artificial está cambiando la vida cotidiana.",
-      "image": "/server/images/image-1.png"
+      "image": "/server/images/image-1.png",
+      "date": "2024-11-25"
     },
     {
       "id": 2,
       "title": "Avances en la exploración espacial",
       "content": "Nuevas misiones hacia Marte están en desarrollo con tecnologías innovadoras.",
-      "image": "/server/images/image-2.png"
+      "image": "/server/images/image-2.png",
+      "date": "2024-12-08"
     },
     {
       "id": 3,
       "title": "Economía global en transformación",
       "content": "El auge de las criptomonedas y su impacto en los mercados tradicionales.",
-      "image": "/server/images/image-3.png"
+      "image": "/server/images/image-3.png",
+      "date": "2024-11-10"
     }
   ],
   "rankingJRs":[
@@ -159,6 +172,45 @@
       "gananciasNetas": 18000,
       "caidos": 7,
       "gananciaPromedio": 45
+    }
+  ],
+  "caidos":[
+    {
+      "id": "kU5JGfIYMOk",
+      "title": "Estados Unidos de Locos",
+      "description": "¡Los estadounidenses perdieron la chaveta! ...",
+      "date": "01 - August - 2024",
+      "views": 22755,
+      "estimatedRevenue": 17.444,
+      "estimatedAdRevenue": 16.736,
+      "videoViews": 22748,
+      "averageViewDuration": 189,
+      "rpm": 0.766836645,
+      "thumbnail": "/server/images/image-2.png"
+    }
+  ],
+  "pagos":[
+    {
+      "codigo": "R001",
+      "nombre": "Juan Pérez",
+      "videosTotales": 2,
+      "videosCaidos": 0,
+      "gananciaTotal": 500,
+      "gananciaMenosImpuestos": 400,
+      "gananciaDespuesCaidos": 400,
+      "comisionDolares": 40,
+      "comisionSoles": 160
+    },
+    {
+      "codigo": "R002",
+      "nombre": "Ana López",
+      "videosTotales": 1,
+      "videosCaidos": 1,
+      "gananciaTotal": 250,
+      "gananciaMenosImpuestos": 200,
+      "gananciaDespuesCaidos": 150,
+      "comisionDolares": 15,
+      "comisionSoles": 60
     }
   ]
 }

@@ -2,7 +2,8 @@
   <div>
     <!-- Botón del menú de hamburguesa -->
     <button class="hamburger-menu" @click="toggleSidebar">
-      <span class="material-icons">menu</span>
+      <span v-if="!isHidden" class="material-icons">expand_more</span>
+      <span v-else class="material-icons">menu</span>
     </button>
 
     <!-- Sidebar -->
@@ -49,35 +50,57 @@ export default {
   name: "Sidebar",
   data() {
     return {
-      isCollapsed: false, // Estado para hacer más fina la sidebar
-      isHidden: false, // Estado para ocultar la sidebar en pantallas pequeñas
+      isCollapsed: false, // Estado para reducir el tamaño de la sidebar
+      isHidden: false, // Estado para ocultar completamente la sidebar
     };
   },
   methods: {
     toggleSidebar() {
-      this.isHidden = !this.isHidden; // Alternar entre mostrar y ocultar el menú de hamburguesa
+      this.isHidden = !this.isHidden; // Alternar entre ocultar y mostrar la sidebar
+      if (!this.isHidden) {
+        this.isCollapsed = false; // Asegurarse de expandir cuando se muestra
+      }
     },
+    handleResize() {
+      if (window.innerWidth > 1024) {
+        this.isHidden = false; // Mostrar la sidebar en pantallas grandes
+        this.isCollapsed = false; // Expandir completamente
+      }
+    },
+  },
+  mounted() {
+    window.addEventListener("resize", this.handleResize);
+    this.handleResize();
+  },
+  beforeDestroy() {
+    window.removeEventListener("resize", this.handleResize);
   },
 };
 </script>
 
 
 <style scoped>
-
 .sidebar {
   width: 200px;
   background-color: #ffffff;
   padding: 20px;
   box-shadow: 1px 0 1px rgba(0, 0, 0, 0.1);
-  transition: width 0.3s ease, transform 0.3s ease;
+  transition: transform 0.3s ease, opacity 0.3s ease; /* Animación suave */
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 999;
 }
+
 
 .sidebar.collapsed {
   width: 60px;
 }
 
 .sidebar.hidden {
-  transform: translateX(-100%);
+  transform: translateY(-100%); /* Mueve la sidebar hacia arriba */
+  opacity: 0;
+  pointer-events: none;
 }
 
 .sidebar ul {
@@ -100,7 +123,7 @@ export default {
 }
 
 .sidebar a:hover {
-  color: #FF0000;
+  color: #ff0000;
 }
 
 .icon {
@@ -117,14 +140,18 @@ export default {
 .hamburger-menu {
   display: none;
   position: fixed;
-  top: 20px;
-  left: 20px;
-  background-color: #ffffff;
+  left: 0;
+  top: 0;
+  background-color: transparent;
   border: none;
-  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   z-index: 1000;
   padding: 10px;
+  width: 60px;
+  height: 60px;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
 }
 
 .hamburger-menu .material-icons {
@@ -147,6 +174,10 @@ export default {
     margin: 20px 0;
   }
 
+  .hamburger-menu {
+    display: block;
+  }
+
   .sidebar a span:not(.icon) {
     display: none;
   }
@@ -158,7 +189,6 @@ export default {
   }
 
   .sidebar.hidden {
-    position: fixed;
     transform: translateX(-100%);
     height: 100%;
     top: 0;
@@ -175,3 +205,4 @@ export default {
   }
 }
 </style>
+

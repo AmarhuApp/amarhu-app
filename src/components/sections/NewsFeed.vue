@@ -70,6 +70,12 @@ export default {
   }
 }
 
+@media (max-width: 1024px) {
+  .news-feed {
+    display: none;
+  }
+}
+
 .news-title {
   font-size: 18px;
   font-weight: bold;
