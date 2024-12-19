@@ -212,5 +212,12 @@
       "comisionDolares": 15,
       "comisionSoles": 60
     }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "avatar": "/server/images/logo-jota.png"
+    }
   ]
 }

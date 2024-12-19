@@ -4,29 +4,66 @@
       {{ isMobile ? "Amarhu" : "Amarhu - Prensa Alternativa El Jota" }}
     </div>
     <div class="user-section">
-      <img src="../../assets/logo-jota.png" alt="User Icon" class="user-icon" />
+      <!-- Avatar dinámico con redirección -->
+      <img
+          :src="getAvatarUrl(userAvatar)"
+          alt="User Icon"
+          class="user-icon"
+          @click="redirectToUserProfile"
+      />
     </div>
   </div>
 </template>
 
 <script>
+import axios from "axios";
+import { useRouter } from "vue-router"; // Importa el router para navegación
+
 export default {
   name: "Header",
   data() {
     return {
-      isMobile: window.innerWidth <= 768, // Define si es móvil al cargar
+      isMobile: window.innerWidth <= 768,
+      userId: 1, // ID único del usuario
+      userAvatar: "", // Almacena la URL del avatar
     };
   },
   methods: {
     handleResize() {
-      this.isMobile = window.innerWidth <= 768; // Actualiza isMobile al cambiar tamaño
+      this.isMobile = window.innerWidth <= 768;
+    },
+    async fetchUserData() {
+      try {
+        const response = await axios.get("http://localhost:3000/users");
+        const user = response.data.find((u) => u.id === this.userId);
+        if (user) {
+          this.userAvatar = user.avatar;
+        } else {
+          console.warn("Usuario no encontrado");
+          this.userAvatar = "/assets/default-avatar.png";
+        }
+      } catch (error) {
+        console.error("Error al cargar datos del usuario:", error);
+        this.userAvatar = "/assets/default-avatar.png";
+      }
+    },
+    getAvatarUrl(avatarPath) {
+      if (avatarPath.startsWith("/")) {
+        return avatarPath;
+      }
+      return `/server/images/${avatarPath}`;
+    },
+    redirectToUserProfile() {
+      // Redirige al perfil del usuario
+      this.$router.push({ name: "UserProfile" });
     },
   },
   mounted() {
-    window.addEventListener("resize", this.handleResize); // Escucha cambios en el tamaño
+    window.addEventListener("resize", this.handleResize);
+    this.fetchUserData();
   },
   beforeDestroy() {
-    window.removeEventListener("resize", this.handleResize); // Limpia el listener
+    window.removeEventListener("resize", this.handleResize);
   },
 };
 </script>
