@@ -66,7 +66,7 @@
   ],
   "topProducers": [
     {
-      "id": 1,
+      "id": "1",
       "name": "Juan Pérez",
       "videoCount": 25,
       "fallenVideos": 2,
@@ -74,7 +74,7 @@
       "totalProductionCost": 500
     },
     {
-      "id": 2,
+      "id": "2",
       "name": "María López",
       "videoCount": 20,
       "fallenVideos": 1,
@@ -82,7 +82,7 @@
       "totalProductionCost": 400
     },
     {
-      "id": 3,
+      "id": "3",
       "name": "Carlos Sánchez",
       "videoCount": 18,
       "fallenVideos": 3,
@@ -90,7 +90,7 @@
       "totalProductionCost": 450
     },
     {
-      "id": 4,
+      "id": "4",
       "name": "Ana Morales",
       "videoCount": 15,
       "fallenVideos": 0,
@@ -98,7 +98,7 @@
       "totalProductionCost": 300
     },
     {
-      "id": 5,
+      "id": "5",
       "name": "Luis Gómez",
       "videoCount": 10,
       "fallenVideos": 1,
@@ -108,46 +108,46 @@
   ],
   "noticias": [
     {
-      "id": 4,
+      "id": "4",
       "title": "Bienvenido a Prensa Alternartiva El Jota",
       "content": "Bienvenido a Prensa Alternativa El Jota, sientete comodo durante tu estadia con nosotros.",
       "image": "",
       "date": "2024-12-13"
     },
     {
-      "id": 1,
+      "id": "1",
       "title": "El impacto de la IA en la sociedad",
       "content": "Un análisis sobre cómo la inteligencia artificial está cambiando la vida cotidiana.",
       "image": "/server/images/image-1.png",
       "date": "2024-11-25"
     },
     {
-      "id": 2,
+      "id": "2",
       "title": "Avances en la exploración espacial",
       "content": "Nuevas misiones hacia Marte están en desarrollo con tecnologías innovadoras.",
       "image": "/server/images/image-2.png",
       "date": "2024-12-08"
     },
     {
-      "id": 3,
+      "id": "3",
       "title": "Economía global en transformación",
       "content": "El auge de las criptomonedas y su impacto en los mercados tradicionales.",
       "image": "/server/images/image-3.png",
       "date": "2024-11-10"
     }
   ],
-  "rankingJRs":[
+  "rankingJRs": [
     {
-      "id": 1,
+      "id": "1",
       "nombre": "Carlos Rodríguez",
-      "produccionTotal": 500,
+      "produccionTotal": 70,
       "gananciasTotales": 25000,
       "gananciasNetas": 20000,
       "caidos": 10,
       "gananciaPromedio": 40
     },
     {
-      "id": 2,
+      "id": "2",
       "nombre": "Ana López",
       "produccionTotal": 300,
       "gananciasTotales": 15000,
@@ -156,7 +156,7 @@
       "gananciaPromedio": 45
     },
     {
-      "id": 3,
+      "id": "3",
       "nombre": "Miguel Sánchez",
       "produccionTotal": 600,
       "gananciasTotales": 27000,
@@ -165,16 +165,16 @@
       "gananciaPromedio": 36.67
     },
     {
-      "id": 4,
+      "id": "4",
       "nombre": "Lucía Fernández",
-      "produccionTotal": 400,
+      "produccionTotal": 290,
       "gananciasTotales": 19000,
       "gananciasNetas": 18000,
       "caidos": 7,
       "gananciaPromedio": 45
     }
   ],
-  "caidos":[
+  "caidos": [
     {
       "id": "kU5JGfIYMOk",
       "title": "Estados Unidos de Locos",
@@ -189,7 +189,7 @@
       "thumbnail": "/server/images/image-2.png"
     }
   ],
-  "pagos":[
+  "pagos": [
     {
       "codigo": "R001",
       "nombre": "Juan Pérez",
@@ -199,7 +199,8 @@
       "gananciaMenosImpuestos": 400,
       "gananciaDespuesCaidos": 400,
       "comisionDolares": 40,
-      "comisionSoles": 160
+      "comisionSoles": 160,
+      "id": "c9d1"
     },
     {
       "codigo": "R002",
@@ -210,14 +211,42 @@
       "gananciaMenosImpuestos": 200,
       "gananciaDespuesCaidos": 150,
       "comisionDolares": 15,
-      "comisionSoles": 60
+      "comisionSoles": 60,
+      "id": "a2ff"
     }
   ],
   "users": [
     {
-      "id": 1,
+      "id": "1",
       "name": "John Doe",
-      "avatar": "/server/images/logo-jota.png"
+      "email": "johndoe@example.com",
+      "avatar": "/server/images/logo-jota.png",
+      "password": "password123",
+      "role": "user",
+      "createdAt": "2024-01-01T12:00:00Z",
+      "isActive": true
+    },
+    {
+      "id": "2",
+      "name": "Samantha Gutierrez",
+      "email": "Samantha123@gmail.com",
+      "avatar": "/server/images/logo-jota.png",
+      "password": "samantha2024",
+      "role": "admin",
+      "createdAt": "2024-01-02T08:30:00Z",
+      "isActive": true
+    }
+  ],
+  "upload": [
+    {
+      "id": "1",
+      "url": "/server/images/avatar1.png",
+      "userId": "1"
+    },
+    {
+      "id": "2",
+      "url": "/server/images/avatar2.png",
+      "userId": "2"
     }
   ]
 }

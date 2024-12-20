@@ -6,11 +6,19 @@ import Statistics from "@/views/Statistics.vue";
 import Reports from "@/views/Reports.vue";
 import Settings from "@/views/Settings.vue";
 import UserProfile from "@/views/UserProfile.vue";
+import Login from "@/views/Login.vue";
 
 const routes = [
     {
+        path: "/login",
+        name: "Login",
+        component: Login, // Nueva ruta para el inicio de sesión
+    },
+    {
         path: "/",
+        name: "Home",
         component: Home,
+        meta: { requiresAuth: true }, // Protección de ruta
         children: [
             {
                 path: "",
@@ -42,13 +50,24 @@ const routes = [
     {
         path: "/user-profile",
         name: "UserProfile",
-        component: UserProfile, // Nueva ruta para el perfil de usuario
+        component: UserProfile, // Ruta para el perfil de usuario
+        meta: { requiresAuth: true },
     },
 ];
 
 const router = createRouter({
     history: createWebHistory(),
     routes,
+});
+
+// Protección de rutas
+router.beforeEach((to, from, next) => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    if (to.meta.requiresAuth && !isLoggedIn) {
+        next({ name: "Login" });
+    } else {
+        next();
+    }
 });
 
 export default router;

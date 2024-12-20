@@ -112,12 +112,28 @@
           </div>
         </div>
 
+        <!-- Barra de progreso -->
+        <div class="jr-quota">
+          <span class="quota-label">Cuota: {{ jefe.quota }}</span>
+          <span class="quota-percentage">{{ jefe.quotaProgress }}%</span>
+          <div class="quota-bar-container">
+            <div
+                class="quota-bar"
+                :style="{
+            width: jefe.quotaProgress + '%',
+            backgroundColor: jefe.quotaProgress >= 100 ? 'green' : 'blue'
+          }"
+            ></div>
+          </div>
+        </div>
+
         <!-- Ganancia promedio destacada -->
         <div class="jr-gain">
           Ganancia Promedio: {{ jefe.gananciaPromedio.toFixed(2) }}
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -177,8 +193,16 @@ export default {
 
         // Procesar datos de JR
         this.jrData = response.data.map((jr) => {
+          const quota = this.getQuota(jr.id); // Asigna cuota específica para cada JR
+          const quotaProgress = Math.min(
+              Math.round((jr.produccionTotal / quota) * 100),
+              100
+          ); // Calcula el progreso, limitándolo a 100%
+
           return {
             ...jr,
+            quota,
+            quotaProgress, // Porcentaje respecto a la cuota
             gananciaPromedio: jr.produccionTotal
                 ? jr.gananciasNetas / jr.produccionTotal
                 : 0, // Evita división por 0
@@ -187,6 +211,16 @@ export default {
       } catch (error) {
         console.error("Error al obtener los datos de JR's:", error.message);
       }
+    },
+    getQuota(jrId) {
+      // Define cuotas específicas para cada JR
+      const quotas = {
+        1: 170,
+        2: 400,
+        3: 400,
+        4: 300,
+      };
+      return quotas[jrId] || 200; // Valor por defecto si no está definido
     },
     normalizeData() {
       // Definir rangos específicos para cada categoría
@@ -439,6 +473,42 @@ h3 {
   transform: rotate(0); /* Texto alineado horizontalmente */
   text-align: center;
 }
+
+.jr-quota {
+  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.quota-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #555;
+}
+
+.quota-percentage {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin-top: 5px;
+}
+
+.quota-bar-container {
+  width: 100%;
+  height: 10px;
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.quota-bar {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
 
 /* NUEVO: Estilos para pestañas */
 

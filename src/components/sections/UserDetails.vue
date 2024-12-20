@@ -18,20 +18,60 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "UserDetails",
+  props: {
+    user: {
+      type: Object,
+      required: true,
+    },
+  },
   data() {
     return {
       user: {
-        name: "Nombre del Usuario",
-        email: "usuario@email.com",
+        id: null,
+        name: "",
+        email: "",
       },
     };
   },
+  created() {
+    this.fetchUserDetails();
+  },
   methods: {
-    updateDetails() {
-      alert("Detalles del usuario actualizados correctamente");
-      console.log(this.user);
+    async fetchUserDetails() {
+      try {
+        const loggedInUser = JSON.parse(localStorage.getItem("user")); // Obtener datos del usuario logueado
+        if (loggedInUser) {
+          const response = await axios.get(`http://localhost:3000/users/${loggedInUser.id}`);
+          this.user = {
+            id: response.data.id,
+            name: response.data.name,
+            email: response.data.email || "usuario@email.com",
+          };
+        } else {
+          alert("No se encontró información del usuario. Por favor, inicie sesión.");
+          this.$router.push("/login");
+        }
+      } catch (error) {
+        console.error("Error al cargar los detalles del usuario:", error);
+      }
+    },
+    async updateDetails() {
+      try {
+        await axios.put(`http://localhost:3000/users/${this.user.id}`, {
+          name: this.user.name,
+          email: this.user.email,
+        });
+        alert("Detalles del usuario actualizados correctamente");
+        // Actualiza los datos en `localStorage` después de guardar
+        localStorage.setItem("user", JSON.stringify(this.user));
+      } catch (error) {
+        console.error("Error al actualizar los detalles del usuario:", error);
+        alert("Ocurrió un error al actualizar los detalles.");
+      }
     },
   },
 };

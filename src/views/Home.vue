@@ -7,8 +7,9 @@
         <LastVideoPerformance v-if="isHomeRoute" />
         <router-view v-else />
       </div>
-      <!-- Mostrar NewsFeed solo si NO estás en /reports o /statistics -->
-      <NewsFeed v-if="isNewsFeedVisible" />
+      <!-- Mostrar LastVideoPreview en lugar de NewsFeed si estamos en /posts -->
+      <LastVideoPreview v-if="isPostsRoute" />
+      <NewsFeed v-else-if="isNewsFeedVisible" />
     </div>
   </div>
 </template>
@@ -18,6 +19,7 @@ import Header from "@/components/layout/Header.vue";
 import Sidebar from "@/components/layout/Sidebar.vue";
 import NewsFeed from "@/components/sections/NewsFeed.vue";
 import LastVideoPerformance from "@/components/sections/LastVideoPerformance.vue";
+import LastVideoPreview from "@/components/sections/LastVideoPreview.vue"; // Nuevo componente
 import axios from "axios";
 import { useRoute } from "vue-router";
 
@@ -28,6 +30,7 @@ export default {
     Sidebar,
     NewsFeed,
     LastVideoPerformance,
+    LastVideoPreview, // Agregado el nuevo componente
   },
   data() {
     return {
@@ -39,9 +42,12 @@ export default {
       const route = useRoute();
       return route.path === "/";
     },
+    isPostsRoute() {
+      const route = useRoute();
+      return route.path === "/posts";
+    },
     isNewsFeedVisible() {
       const route = useRoute();
-      // Mostrar NewsFeed solo si no estamos en /reports o /statistics
       return route.path !== "/reports" && route.path !== "/statistics";
     },
   },

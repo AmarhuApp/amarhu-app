@@ -4,28 +4,33 @@
       {{ isMobile ? "Amarhu" : "Amarhu - Prensa Alternativa El Jota" }}
     </div>
     <div class="user-section">
-      <!-- Avatar dinámico con redirección -->
+      <!-- Avatar dinámico con menú desplegable -->
       <img
-          :src="getAvatarUrl(userAvatar)"
+          :src="userAvatar"
           alt="User Icon"
           class="user-icon"
-          @click="redirectToUserProfile"
+          @click="toggleMenu"
       />
+      <!-- Menú desplegable -->
+      <div v-if="showMenu" class="dropdown-menu">
+        <button @click="redirectToUserProfile">Perfil de Usuario</button>
+        <button @click="logout">Cerrar Sesión</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import axios from "axios";
-import { useRouter } from "vue-router"; // Importa el router para navegación
 
 export default {
   name: "Header",
   data() {
     return {
       isMobile: window.innerWidth <= 768,
-      userId: 1, // ID único del usuario
-      userAvatar: "", // Almacena la URL del avatar
+      userId: 2, // ID único del usuario
+      userAvatar: "/assets/default-avatar.png", // Imagen de avatar por defecto
+      showMenu: false, // Estado para mostrar u ocultar el menú desplegable
     };
   },
   methods: {
@@ -34,28 +39,28 @@ export default {
     },
     async fetchUserData() {
       try {
-        const response = await axios.get("http://localhost:3000/users");
-        const user = response.data.find((u) => u.id === this.userId);
-        if (user) {
+        const response = await axios.get(`http://localhost:3000/users/${this.userId}`);
+        const user = response.data;
+        if (user && user.avatar) {
           this.userAvatar = user.avatar;
         } else {
-          console.warn("Usuario no encontrado");
-          this.userAvatar = "/assets/default-avatar.png";
+          console.warn("Avatar no encontrado, se usará el predeterminado.");
         }
       } catch (error) {
         console.error("Error al cargar datos del usuario:", error);
-        this.userAvatar = "/assets/default-avatar.png";
       }
     },
-    getAvatarUrl(avatarPath) {
-      if (avatarPath.startsWith("/")) {
-        return avatarPath;
-      }
-      return `/server/images/${avatarPath}`;
+    toggleMenu() {
+      this.showMenu = !this.showMenu;
     },
     redirectToUserProfile() {
-      // Redirige al perfil del usuario
       this.$router.push({ name: "UserProfile" });
+      this.showMenu = false; // Oculta el menú después de redirigir
+    },
+    logout() {
+      localStorage.removeItem("isLoggedIn"); // Limpia la sesión
+      this.$router.push({ name: "Login" });
+      this.showMenu = false; // Oculta el menú después de cerrar sesión
     },
   },
   mounted() {
@@ -112,11 +117,42 @@ export default {
   border-radius: 50%;
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  object-fit: cover; /* Asegura que la imagen se ajuste correctamente */
 }
 
 .user-icon:hover {
   transform: scale(1.1);
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 60px; /* Espaciado debajo del avatar */
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  width: 150px;
+  text-align: left;
+}
+
+.dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.dropdown-menu button:hover {
+  background-color: #f5f5f5;
 }
 
 @media (max-width: 1024px) {

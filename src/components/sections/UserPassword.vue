@@ -41,8 +41,16 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "UserPassword",
+  props: {
+    user: {
+      type: Object,
+      required: true,
+    },
+  },
   data() {
     return {
       currentPassword: "",
@@ -51,12 +59,43 @@ export default {
     };
   },
   methods: {
-    changePassword() {
-      if (this.newPassword !== this.confirmPassword) {
-        alert("Las contraseñas no coinciden.");
-      } else {
+    async changePassword() {
+      try {
+        // Obtener el usuario logueado desde localStorage
+        const loggedInUser = JSON.parse(localStorage.getItem("user"));
+        if (!loggedInUser) {
+          alert("No se encontró información del usuario. Por favor, inicie sesión.");
+          this.$router.push("/login");
+          return;
+        }
+
+        // Verificar la contraseña actual
+        const response = await axios.get(`http://localhost:3000/users/${loggedInUser.id}`);
+        const user = response.data;
+
+        if (this.currentPassword !== user.password) {
+          alert("La contraseña actual es incorrecta.");
+          return;
+        }
+
+        if (this.newPassword !== this.confirmPassword) {
+          alert("Las contraseñas no coinciden.");
+          return;
+        }
+
+        // Actualizar la contraseña en la base de datos
+        await axios.put(`http://localhost:3000/users/${loggedInUser.id}`, {
+          ...user,
+          password: this.newPassword,
+        });
+
         alert("Contraseña actualizada correctamente.");
-        console.log("Nueva contraseña:", this.newPassword);
+        this.currentPassword = "";
+        this.newPassword = "";
+        this.confirmPassword = "";
+      } catch (error) {
+        console.error("Error al actualizar la contraseña:", error);
+        alert("Ocurrió un error al actualizar la contraseña.");
       }
     },
   },

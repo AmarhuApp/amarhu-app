@@ -12,31 +12,31 @@
         <li>
           <router-link to="/">
             <span class="material-icons icon">home</span>
-            <span v-if="!isCollapsed">Home</span>
+            <span v-if="!isCollapsed">Inicio</span>
           </router-link>
         </li>
         <li>
           <router-link to="/posts">
             <span class="material-icons icon">article</span>
-            <span v-if="!isCollapsed">Posts</span>
+            <span v-if="!isCollapsed">Avisos</span>
           </router-link>
         </li>
         <li>
           <router-link to="/statistics">
             <span class="material-icons icon">bar_chart</span>
-            <span v-if="!isCollapsed">Statistics</span>
+            <span v-if="!isCollapsed">Estadisticas</span>
           </router-link>
         </li>
         <li>
           <router-link to="/reports">
             <span class="material-icons icon">description</span>
-            <span v-if="!isCollapsed">Reports</span>
+            <span v-if="!isCollapsed">Reportes</span>
           </router-link>
         </li>
         <li>
           <router-link to="/settings">
             <span class="material-icons icon">settings</span>
-            <span v-if="!isCollapsed">Settings</span>
+            <span v-if="!isCollapsed">Configuraciones</span>
           </router-link>
         </li>
       </ul>

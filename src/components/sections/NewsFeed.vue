@@ -1,6 +1,6 @@
 <template>
   <div class="news-feed">
-    <h2 class="news-title">Últimas Noticias</h2>
+    <h2 class="news-title">Avisos</h2>
     <div v-for="post in posts" :key="post.id" class="post">
       <div class="post-image" v-if="post.image">
         <img :src="post.image" alt="Imagen de la noticia" />
