@@ -29,11 +29,7 @@
               required
           />
         </div>
-        <button
-            type="submit"
-            class="login-button"
-            :disabled="isLoading"
-        >
+        <button type="submit" class="login-button" :disabled="isLoading">
           <span v-if="isLoading">Cargando...</span>
           <span v-else>Ingresar</span>
         </button>
@@ -64,7 +60,7 @@ export default {
       this.error = null;
 
       // Validación básica antes de enviar
-      if (!this.email || !this.password) {
+      if (!this.email.trim() || !this.password.trim()) {
         this.error = "Por favor, completa todos los campos.";
         return;
       }
@@ -73,14 +69,16 @@ export default {
         this.isLoading = true;
 
         // Llamar a la acción `login` del store
-        await userStore.login(this.email, this.password);
+        await userStore.login(this.email.trim(), this.password.trim());
 
         // Redirigir al Home
-        this.$router.push({name: "Home"});
+        this.$router.push({ name: "Home" });
       } catch (error) {
         // Manejo de errores específicos
         if (error.response && error.response.status === 401) {
           this.error = "Correo o contraseña incorrectos.";
+        } else if (error.message) {
+          this.error = error.message;
         } else {
           this.error = "Ocurrió un error al iniciar sesión. Inténtalo nuevamente.";
         }

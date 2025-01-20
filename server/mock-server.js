@@ -1,10 +1,13 @@
-import express from 'express';
-import bodyParser from 'body-parser';
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
 
 const app = express();
 const PORT = 3300;
 
+// Middleware para manejar JSON y habilitar CORS
 app.use(bodyParser.json());
+app.use(cors());
 
 // Colección de usuarios simulada
 const users = [
@@ -110,16 +113,24 @@ const users = [
 ];
 
 // Endpoint para autenticar
-app.post('/api/auth/login', (req, res) => {
+app.post("/api/auth/login", (req, res) => {
+    console.log("Request Body:", req.body);
+
     const { email, password } = req.body;
 
-    // Busca el usuario por email
+    // Verificar que se envíen los datos requeridos
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email y contraseña son requeridos" });
+    }
+
+    // Buscar el usuario
     const user = users.find(
         (u) => u.email === email && u.password === password && u.isActive
     );
 
     if (user) {
-        res.status(200).json({
+        console.log("Usuario encontrado:", user);
+        return res.status(200).json({
             id: user.id,
             codigo: user.codigo,
             name: user.name,
@@ -130,13 +141,20 @@ app.post('/api/auth/login', (req, res) => {
             isActive: user.isActive,
         });
     } else {
-        res.status(401).json({ error: 'Credenciales inválidas o usuario inactivo' });
+        console.log("Usuario no encontrado o inactivo");
+        return res.status(401).json({ error: "Credenciales inválidas o usuario inactivo" });
     }
 });
 
+// Endpoint para obtener todos los usuarios
+app.get("/users", (req, res) => {
+    console.log("Solicitando todos los usuarios");
+    res.status(200).json(users);
+});
+
 // Servidor para verificar que está corriendo
-app.get('/', (req, res) => {
-    res.send('Mock server running...');
+app.get("/", (req, res) => {
+    res.send("Mock server running...");
 });
 
 // Inicia el servidor
