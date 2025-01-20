@@ -14,7 +14,7 @@
         </div>
         <div class="stat-item">
           <span class="stat-label">Videos Caídos:</span>
-          <span class="stat-value">{{ productionData.filtroCaidos }}</span>
+          <span class="stat-value">{{ productionData.videosCaidos }}</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Coste Producción:</span>
@@ -58,7 +58,7 @@ export default {
       productionData: {
         totalVideos: 0,
         gananciaNeta: 0,
-        filtroCaidos: 0,
+        videosCaidos: 0,
         costeTotalProduccion: 0,
       },
       topJR: {

@@ -63,10 +63,17 @@ const router = createRouter({
 // Protección de rutas
 router.beforeEach((to, from, next) => {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (to.meta.requiresAuth && !isLoggedIn) {
-        next({ name: "Login" });
+    const userId = localStorage.getItem("userId");
+
+    if (to.meta.requiresAuth) {
+        if (!isLoggedIn || !userId) {
+            // Redirige al login si no hay sesión
+            next({ name: "Login" });
+        } else {
+            next(); // Permite la navegación
+        }
     } else {
-        next();
+        next(); // Permite el acceso a rutas públicas
     }
 });
 

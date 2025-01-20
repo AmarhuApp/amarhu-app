@@ -3,14 +3,31 @@
     <!-- Navegación de pestañas -->
     <div class="tab-container">
       <button
-          :class="{'active-tab': activeTab === 'produccion'}"
-          @click="activeTab = 'produccion'">
+          :class="{ 'active-tab': activeTab === 'produccion' }"
+          @click="activeTab = 'produccion'"
+      >
         Resumen de Producción
       </button>
       <button
-          :class="{'active-tab': activeTab === 'jr'}"
-          @click="activeTab = 'jr'">
+          v-if="isDirectivo || isJefePrensa"
+          :class="{ 'active-tab': activeTab === 'jr' }"
+          @click="activeTab = 'jr'"
+      >
         Resumen JR's
+      </button>
+      <button
+          v-if="isJefeRedaccion"
+          :class="{ 'active-tab': activeTab === 'redactores' }"
+          @click="activeTab = 'redactores'"
+      >
+        Redactores
+      </button>
+      <button
+          v-if="isEmpleado"
+          :class="{ 'active-tab': activeTab === 'topVideos' }"
+          @click="activeTab = 'topVideos'"
+      >
+        Mis Mejores Videos
       </button>
     </div>
 
@@ -35,8 +52,8 @@
               <td class="value">{{ productionData.totalVideos }}</td>
             </tr>
             <tr>
-              <td class="label">Filtro de caídos:</td>
-              <td class="value">{{ productionData.filtroCaidos }}</td>
+              <td class="label">Videos Caídos:</td>
+              <td class="value">{{ productionData.videosCaidos }}</td>
             </tr>
             <tr>
               <td class="label">Ganancia Total:</td>
@@ -81,18 +98,16 @@
 
     <!-- Contenido de Resumen JR's -->
     <div v-if="activeTab === 'jr'" class="ranking-container">
+      <h3>Resumen JR's</h3>
       <div
           class="jr-card"
           v-for="(jefe, index) in sortedJefes"
           :key="jefe.id"
       >
-        <!-- Encabezado -->
         <div class="jr-header">
           <span class="jr-position">#{{ index + 1 }}</span>
           <span class="jr-name">{{ jefe.nombre }}</span>
         </div>
-
-        <!-- Estadísticas -->
         <div class="jr-stats">
           <div class="jr-stat-item">
             <span class="jr-stat-label">Producción Total</span>
@@ -108,34 +123,61 @@
           </div>
           <div class="jr-stat-item">
             <span class="jr-stat-label">Número de Caídos</span>
-            <span class="jr-stat-value">{{ jefe.numeroCaidos }}</span>
+            <span class="jr-stat-value">{{ jefe.caidos }}</span>
           </div>
-        </div>
-
-        <!-- Barra de progreso -->
-        <div class="jr-quota">
-          <span class="quota-label">Cuota: {{ jefe.quota }}</span>
-          <span class="quota-percentage">{{ jefe.quotaProgress }}%</span>
-          <div class="quota-bar-container">
-            <div
-                class="quota-bar"
-                :style="{
-            width: jefe.quotaProgress + '%',
-            backgroundColor: jefe.quotaProgress >= 100 ? 'green' : 'blue'
-          }"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Ganancia promedio destacada -->
-        <div class="jr-gain">
-          Ganancia Promedio: {{ jefe.gananciaPromedio.toFixed(2) }}
         </div>
       </div>
     </div>
 
+    <!-- Contenido de Redactores (para Jefe de Redacción) -->
+    <div v-if="activeTab === 'redactores'" class="ranking-container">
+      <h3>Redactores</h3>
+      <div
+          class="redactor-card"
+          v-for="(redactor, index) in redactores"
+          :key="redactor.codigo"
+      >
+        <div class="redactor-header">
+          <span class="redactor-position">#{{ index + 1 }}</span>
+          <span class="redactor-name">{{ redactor.nombre }}</span>
+        </div>
+        <div class="redactor-stats">
+          <div class="redactor-stat-item">
+            <span class="redactor-stat-label">Videos Totales:</span>
+            <span class="redactor-stat-value">{{ redactor.videosTotales }}</span>
+          </div>
+          <div class="redactor-stat-item">
+            <span class="redactor-stat-label">Videos Caídos:</span>
+            <span class="redactor-stat-value">{{ redactor.videosCaidos }}</span>
+          </div>
+          <div class="redactor-stat-item">
+            <span class="redactor-stat-label">Comisión:</span>
+            <span class="redactor-stat-value">${{ redactor.comisionDolares }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenido de Mejores Videos (para Empleados) -->
+    <div v-if="activeTab === 'topVideos'" class="video-ranking-container">
+      <h3>Mis Mejores Videos</h3>
+      <div
+          class="video-card"
+          v-for="(video, index) in topVideos"
+          :key="video.id"
+      >
+        <img :src="video.thumbnail" alt="Thumbnail" class="video-thumbnail" />
+        <div class="video-info">
+          <h4 class="video-title">{{ video.title }}</h4>
+          <p class="video-revenue">
+            Ganancias Estimadas: ${{ video.estimatedRevenue.toFixed(2) }}
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
+
 
 
 <script>
@@ -149,119 +191,99 @@ export default {
   data() {
     return {
       activeTab: "produccion", // Controla la pestaña activa
-      productionData: null,
-      productionDataLastMonth: null,
-      maxValues: {}, // Almacena los valores máximos que representan el 10 en cada categoría
-      jrData: null, // Datos para el resumen JR's
-      chartInstance: null, // Referencia a la instancia de la gráfica
+      productionData: null, // Datos de producción general o personal
+      productionDataLastMonth: null, // Datos del mes pasado (solo para directivo)
+      jrData: null, // Datos de JR's
+      topVideos: [], // Mejores videos para empleados
+      redactores: [], // Datos para jefe de redacción
+      chartInstance: null,
+      userId: null, // ID del usuario logueado
+      userRole: null, // Rol del usuario logueado
     };
   },
   mounted() {
-    this.fetchProductionData();
-    this.setMaxValues();
-    this.fetchJRData(); // Cargar datos de JR's
+    this.initializeUser(); // Inicializa el usuario y carga su ID y rol
   },
   methods: {
-    goToStats() {
-      this.$router.push("/statistics");
+    async initializeUser() {
+      try {
+        // Obtén el ID del usuario desde localStorage o Vuex
+        this.userId = localStorage.getItem("userId") || null;
+
+        if (!this.userId) {
+          console.error("No se encontró el ID del usuario. Verifica la autenticación.");
+          return;
+        }
+
+        // Obtén los datos del usuario por ID
+        const response = await axios.get(`http://localhost:3000/users/${this.userId}`);
+        this.userRole = response.data.role;
+
+        // Cargar datos según el rol
+        if (this.isDirectivo) {
+          this.fetchProductionData(); // Producción general para directivo
+        } else {
+          this.fetchPersonalProduction(); // Producción personal para otros roles
+        }
+
+        // Cargar datos adicionales si aplica
+        this.fetchJRData();
+        this.fetchTopVideos(); // Mejores videos para empleados
+      } catch (error) {
+        console.error("Error al inicializar el usuario:", error.message);
+      }
     },
     async fetchProductionData() {
       try {
-        // Fetch current month's production data
         const response = await axios.get("http://localhost:3000/resumenProduccion");
-        console.log("Datos del mes actual:", response.data);
+        const lastMonthResponse = await axios.get(
+            "http://localhost:3000/resumenProduccionMesPasado"
+        );
         this.productionData = response.data;
+        this.productionDataLastMonth = lastMonthResponse.data;
 
-        // Fetch last month's production data
-        const responseLastMonth = await axios.get("http://localhost:3000/resumenProduccionMesPasado");
-        console.log("Datos del mes pasado:", responseLastMonth.data);
-        this.productionDataLastMonth = responseLastMonth.data;
-
-        // Render chart only if both data sets are available
         if (this.productionData && this.productionDataLastMonth) {
           this.renderChart();
         }
       } catch (error) {
-        console.error("Error al obtener los datos de la API:", error.message);
+        console.error("Error al obtener datos de producción:", error.message);
+      }
+    },
+    async fetchPersonalProduction() {
+      try {
+        const response = await axios.get(
+            `http://localhost:3000/produccionPersonal/${this.userId}`
+        );
+        this.productionData = response.data; // Usamos productionData para reutilizar en la vista
+      } catch (error) {
+        console.error("Error al obtener datos de producción personal:", error.message);
       }
     },
     async fetchJRData() {
-      try {
-        // Fetch data for Resumen JR's
-        const response = await axios.get("http://localhost:3000/rankingJRs");
-        console.log("Datos de Resumen JR's:", response.data);
-
-        // Procesar datos de JR
-        this.jrData = response.data.map((jr) => {
-          const quota = this.getQuota(jr.id); // Asigna cuota específica para cada JR
-          const quotaProgress = Math.min(
-              Math.round((jr.produccionTotal / quota) * 100),
-              100
-          ); // Calcula el progreso, limitándolo a 100%
-
-          return {
-            ...jr,
-            quota,
-            quotaProgress, // Porcentaje respecto a la cuota
-            gananciaPromedio: jr.produccionTotal
-                ? jr.gananciasNetas / jr.produccionTotal
-                : 0, // Evita división por 0
-          };
-        });
-      } catch (error) {
-        console.error("Error al obtener los datos de JR's:", error.message);
+      if (this.isDirectivo || this.isJefePrensa) {
+        try {
+          const response = await axios.get("http://localhost:3000/rankingJRs");
+          this.jrData = response.data;
+        } catch (error) {
+          console.error("Error al obtener datos de JR's:", error.message);
+        }
       }
     },
-    getQuota(jrId) {
-      // Define cuotas específicas para cada JR
-      const quotas = {
-        1: 170,
-        2: 400,
-        3: 400,
-        4: 300,
-      };
-      return quotas[jrId] || 200; // Valor por defecto si no está definido
-    },
-    normalizeData() {
-      // Definir rangos específicos para cada categoría
-      const categoryRanges = {
-        totalVideos: { min: 0, max: 1400 },
-        filtroCaidos: { min: 0, max: 400 },
-        gananciaTotal: { min: 0, max: 45000 },
-        gananciaNeta: { min: 0, max: 40000 },
-        costeTotalProduccion: { min: 0, max: 30000 },
-      };
-
-      // Normalizar cada categoría a la escala 1-10
-      const normalizeCategory = (category) => {
-        const { min, max } = categoryRanges[category];
-        return {
-          current: 1 + 9 * ((this.productionData[category] - min) / (max - min)), // Escala 1-10
-          lastMonth: 1 + 9 * ((this.productionDataLastMonth[category] - min) / (max - min)),
-        };
-      };
-
-      return {
-        totalVideos: normalizeCategory("totalVideos"),
-        filtroCaidos: normalizeCategory("filtroCaidos"),
-        gananciaTotal: normalizeCategory("gananciaTotal"),
-        gananciaNeta: normalizeCategory("gananciaNeta"),
-        costeTotalProduccion: normalizeCategory("costeTotalProduccion"),
-      };
-    },
-    setMaxValues() {
-      // Valores máximos correspondientes al 10 en cada categoría
-      this.maxValues = {
-        "Total Videos": 1400,
-        "Filtro Caídos": 400,
-        "Ganancia Total": 45000,
-        "Ganancia Neta": 40000,
-        "Coste Total Producción": 30000,
-      };
+    async fetchTopVideos() {
+      if (this.isEmpleado) {
+        try {
+          const response = await axios.get(`http://localhost:3000/videos/${this.userId}`);
+          this.topVideos = response.data
+              .sort((a, b) => b.estimatedRevenue - a.estimatedRevenue)
+              .slice(0, 5); // Tomar los 5 mejores videos
+        } catch (error) {
+          console.error("Error al obtener los mejores videos:", error.message);
+        }
+      }
     },
     renderChart() {
       if (this.chartInstance) {
-        this.chartInstance.destroy(); // Destruye la gráfica existente antes de crear una nueva
+        this.chartInstance.destroy();
       }
 
       const normalizedData = this.normalizeData();
@@ -273,7 +295,7 @@ export default {
           data: {
             labels: [
               "Total Videos",
-              "Filtro Caídos",
+              "Videos Caídos",
               "Ganancia Total",
               "Ganancia Neta",
               "Coste Producción",
@@ -283,7 +305,7 @@ export default {
                 label: "Este Mes",
                 data: [
                   normalizedData.totalVideos.current,
-                  normalizedData.filtroCaidos.current,
+                  normalizedData.videosCaidos.current,
                   normalizedData.gananciaTotal.current,
                   normalizedData.gananciaNeta.current,
                   normalizedData.costeTotalProduccion.current,
@@ -296,7 +318,7 @@ export default {
                 label: "Mes Pasado",
                 data: [
                   normalizedData.totalVideos.lastMonth,
-                  normalizedData.filtroCaidos.lastMonth,
+                  normalizedData.videosCaidos.lastMonth,
                   normalizedData.gananciaTotal.lastMonth,
                   normalizedData.gananciaNeta.lastMonth,
                   normalizedData.costeTotalProduccion.lastMonth,
@@ -317,10 +339,10 @@ export default {
             },
             scales: {
               r: {
-                min: 1, // Escala mínima
-                max: 10, // Escala máxima
+                min: 1,
+                max: 10,
                 ticks: {
-                  stepSize: 1, // Intervalos claros
+                  stepSize: 1,
                 },
               },
             },
@@ -328,17 +350,61 @@ export default {
         });
       });
     },
-  },
-  watch: {
-    activeTab(newValue) {
-      if (newValue === "produccion" && this.productionData && this.productionDataLastMonth) {
-        this.renderChart(); // Renderiza la gráfica al volver a la pestaña "produccion"
-      }
+    normalizeData() {
+      const normalize = (value, min, max) => 1 + 9 * ((value - min) / (max - min));
+
+      return {
+        totalVideos: {
+          current: normalize(this.productionData.totalVideos, 0, 1400),
+          lastMonth: this.isDirectivo
+              ? normalize(this.productionDataLastMonth.totalVideos, 0, 1400)
+              : null,
+        },
+        videosCaidos: {
+          current: normalize(this.productionData.videosCaidos, 0, 400),
+          lastMonth: this.isDirectivo
+              ? normalize(this.productionDataLastMonth.videosCaidos, 0, 400)
+              : null,
+        },
+        gananciaTotal: {
+          current: normalize(this.productionData.gananciaTotal, 0, 45000),
+          lastMonth: this.isDirectivo
+              ? normalize(this.productionDataLastMonth.gananciaTotal, 0, 45000)
+              : null,
+        },
+        gananciaNeta: {
+          current: normalize(this.productionData.gananciaNeta, 0, 40000),
+          lastMonth: this.isDirectivo
+              ? normalize(this.productionDataLastMonth.gananciaNeta, 0, 40000)
+              : null,
+        },
+        costeTotalProduccion: {
+          current: normalize(this.productionData.costeTotalProduccion, 0, 30000),
+          lastMonth: this.isDirectivo
+              ? normalize(
+                  this.productionDataLastMonth.costeTotalProduccion,
+                  0,
+                  30000
+              )
+              : null,
+        },
+      };
     },
   },
   computed: {
+    isDirectivo() {
+      return this.userRole === "DIRECTIVO";
+    },
+    isJefePrensa() {
+      return this.userRole === "JEFE_PRENSA";
+    },
+    isJefeRedaccion() {
+      return this.userRole === "JEFE_REDACCION";
+    },
+    isEmpleado() {
+      return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userRole);
+    },
     sortedJefes() {
-      // Ordena los jefes por ganancia promedio en orden descendente
       return this.jrData
           ? [...this.jrData].sort((a, b) => b.gananciaPromedio - a.gananciaPromedio)
           : [];

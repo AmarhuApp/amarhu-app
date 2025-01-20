@@ -1,6 +1,5 @@
 <template>
   <div class="login-container">
-    <!-- Título principal -->
     <h1 class="main-title">Bienvenido a Amarhu</h1>
 
     <div class="login-card">
@@ -13,6 +12,8 @@
               v-model="email"
               type="email"
               placeholder="Ingresa tu correo"
+              aria-label="Correo Electrónico"
+              :class="{ 'input-error': error && !email }"
               required
           />
         </div>
@@ -23,17 +24,27 @@
               v-model="password"
               type="password"
               placeholder="Ingresa tu contraseña"
+              aria-label="Contraseña"
+              :class="{ 'input-error': error && !password }"
               required
           />
         </div>
-        <button type="submit" class="login-button">Ingresar</button>
+        <button
+            type="submit"
+            class="login-button"
+            :disabled="isLoading"
+        >
+          <span v-if="isLoading">Cargando...</span>
+          <span v-else>Ingresar</span>
+        </button>
+        <p v-if="error" class="error-message">{{ error }}</p>
       </form>
     </div>
   </div>
 </template>
 
 <script>
-import axios from "axios";
+import { useUserStore } from "@/store/user";
 
 export default {
   name: "Login",
@@ -41,30 +52,41 @@ export default {
     return {
       email: "",
       password: "",
+      isLoading: false, // Estado de carga
+      error: null, // Mensaje de error
     };
   },
   methods: {
     async login() {
+      const userStore = useUserStore();
+
+      // Resetear el estado de error
+      this.error = null;
+
+      // Validación básica antes de enviar
+      if (!this.email || !this.password) {
+        this.error = "Por favor, completa todos los campos.";
+        return;
+      }
+
       try {
-        // Obtener la lista de usuarios
-        const response = await axios.get("http://localhost:3000/users");
-        const user = response.data.find(
-            (u) => u.email === this.email.trim() && u.password === this.password.trim()
-        );
+        this.isLoading = true;
 
-        if (user) {
-          // Almacenar los datos del usuario en localStorage
-          localStorage.setItem("user", JSON.stringify(user));
-          localStorage.setItem("isLoggedIn", "true");
+        // Llamar a la acción `login` del store
+        await userStore.login(this.email, this.password);
 
-          // Redirigir al Home
-          this.$router.push({name: "Home"});
-        } else {
-          alert("Correo o contraseña incorrectos");
-        }
+        // Redirigir al Home
+        this.$router.push({name: "Home"});
       } catch (error) {
+        // Manejo de errores específicos
+        if (error.response && error.response.status === 401) {
+          this.error = "Correo o contraseña incorrectos.";
+        } else {
+          this.error = "Ocurrió un error al iniciar sesión. Inténtalo nuevamente.";
+        }
         console.error("Error al iniciar sesión:", error);
-        alert("Ocurrió un error al iniciar sesión");
+      } finally {
+        this.isLoading = false;
       }
     },
   },
@@ -137,6 +159,18 @@ input:focus {
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
 }
 
+.input-error {
+  border-color: #ff4d4f !important;
+  box-shadow: 0 0 5px rgba(255, 77, 79, 0.5);
+}
+
+.error-message {
+  color: #ff4d4f;
+  font-size: 14px;
+  margin-top: 10px;
+  text-align: center;
+}
+
 .login-button {
   margin-top: 20px;
   padding: 12px 20px;
@@ -149,7 +183,12 @@ input:focus {
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-.login-button:hover {
+.login-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.login-button:hover:not(:disabled) {
   background-color: #0056b3;
   transform: translateY(-1px);
 }

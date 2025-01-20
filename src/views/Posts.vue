@@ -98,10 +98,6 @@ export default {
 };
 </script>
 
-
-
-
-
 <style scoped>
 .posts-container {
   max-width: 800px;
