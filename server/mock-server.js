@@ -12,6 +12,17 @@ app.use(cors());
 // Colección de usuarios simulada
 const users = [
     {
+        id: "50",
+        codigo: "DRO02",
+        name: "Enzo",
+        email: "enzo.directivo@gmail.com",
+        avatar: "/server/images/avatar_directivo.png",
+        password: "directivo1234",
+        role: "DIRECTIVO",
+        createdAt: "2024-01-01T12:00:00Z",
+        isActive: true
+    },
+    {
         id: "1",
         codigo: "DRO01",
         name: "Lorenzo Vallejo",

@@ -40,14 +40,6 @@
           <table v-if="productionData" class="production-table">
             <tbody>
             <tr>
-              <td class="label">Directivo:</td>
-              <td class="value">{{ productionData.directivo }}</td>
-            </tr>
-            <tr>
-              <td class="label">Código de directivo:</td>
-              <td class="value">{{ productionData.codigoDirectivo }}</td>
-            </tr>
-            <tr>
               <td class="label">Total de Videos:</td>
               <td class="value">{{ productionData.totalVideos }}</td>
             </tr>
