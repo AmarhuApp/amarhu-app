@@ -13,7 +13,7 @@ export default defineConfig({
     mkcert(),
   ],
   server: {
-    https: true, // Activa HTTPS automáticamente
+    https: false, // Activa HTTPS automáticamente
   },
   resolve: {
     alias: {
