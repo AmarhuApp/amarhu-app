@@ -31,6 +31,7 @@ export default {
       userId: 2, // ID único del usuario
       userAvatar: "/assets/default-avatar.png", // Imagen de avatar por defecto
       showMenu: false, // Estado para mostrar u ocultar el menú desplegable
+      baseURL: "https://api.pa-reporte.com", // URL base de producción
     };
   },
   methods: {
@@ -39,7 +40,7 @@ export default {
     },
     async fetchUserData() {
       try {
-        const response = await axios.get(`http://localhost:3000/users/${this.userId}`);
+        const response = await axios.get(`${this.baseURL}/api/user`); // Utilizando /api/user
         const user = response.data;
         if (user && user.avatar) {
           this.userAvatar = user.avatar;

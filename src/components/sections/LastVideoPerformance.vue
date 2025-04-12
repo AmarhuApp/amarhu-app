@@ -191,6 +191,7 @@ export default {
       chartInstance: null,
       userId: null, // ID del usuario logueado
       userRole: null, // Rol del usuario logueado
+      baseURL: "https://api.pa-reporte.com", // URL base de producción
     };
   },
   mounted() {
@@ -208,7 +209,7 @@ export default {
         }
 
         // Obtén los datos del usuario por ID
-        const response = await axios.get(`http://localhost:3000/users/${this.userId}`);
+        const response = await axios.get(`${this.baseURL}/api/user`); // Utiliza /api/user
         this.userRole = response.data.role;
 
         // Cargar datos según el rol
@@ -227,9 +228,9 @@ export default {
     },
     async fetchProductionData() {
       try {
-        const response = await axios.get("http://localhost:3000/resumenProduccion");
+        const response = await axios.get(`${this.baseURL}/api/production`); // Utiliza /api/production
         const lastMonthResponse = await axios.get(
-            "http://localhost:3000/resumenProduccionMesPasado"
+            `${this.baseURL}/api/production-last-month` // Utiliza /api/production-last-month
         );
         this.productionData = response.data;
         this.productionDataLastMonth = lastMonthResponse.data;
@@ -244,7 +245,7 @@ export default {
     async fetchPersonalProduction() {
       try {
         const response = await axios.get(
-            `http://localhost:3000/produccionPersonal/${this.userId}`
+            `${this.baseURL}/api/personal-production/${this.userId}` // Utiliza /api/personal-production/{userId}
         );
         this.productionData = response.data; // Usamos productionData para reutilizar en la vista
       } catch (error) {
@@ -254,7 +255,7 @@ export default {
     async fetchJRData() {
       if (this.isDirectivo || this.isJefePrensa) {
         try {
-          const response = await axios.get("http://localhost:3000/rankingJRs");
+          const response = await axios.get(`${this.baseURL}/api/rankingJRs`); // Utiliza /api/rankingJRs
           this.jrData = response.data;
         } catch (error) {
           console.error("Error al obtener datos de JR's:", error.message);
@@ -264,7 +265,9 @@ export default {
     async fetchTopVideos() {
       if (this.isEmpleado) {
         try {
-          const response = await axios.get(`http://localhost:3000/videos/${this.userId}`);
+          const response = await axios.get(
+              `${this.baseURL}/api/personal-videos/${this.userId}` // Utiliza /api/personal-videos/{userId}
+          );
           this.topVideos = response.data
               .sort((a, b) => b.estimatedRevenue - a.estimatedRevenue)
               .slice(0, 5); // Tomar los 5 mejores videos
