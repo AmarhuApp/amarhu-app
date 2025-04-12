@@ -26,12 +26,13 @@ export default {
   data() {
     return {
       posts: [], // Inicialmente vacío para rellenar desde la API
+      baseURL: "https://api.pa-reporte.com", // URL base de producción
     };
   },
   methods: {
     async fetchNews() {
       try {
-        const response = await axios.get("http://localhost:3000/noticias");
+        const response = await axios.get(`${this.baseURL}/api/noticias`);
         this.posts = response.data.map((post) => ({
           ...post,
           liked: false, // Agrega el estado `liked` por defecto
