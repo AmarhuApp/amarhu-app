@@ -70,7 +70,7 @@ export default {
 
         // Llamar a la acción `login` del store
         await userStore.login(this.email.trim(), this.password.trim());
-
+        await userStore.fetchUser();
         // Redirigir al Home
         this.$router.push({ name: "Home" });
       } catch (error) {

@@ -9,7 +9,7 @@ export const useUserStore = defineStore("user", {
             email: "",
             avatar: "",
             role: "", // Rol del usuario
-            isActive: true, // Indicador de actividad del usuario
+            active: true, // Indicador de actividad del usuario
         },
     }),
     getters: {
@@ -172,7 +172,7 @@ export const useUserStore = defineStore("user", {
                 email: "",
                 avatar: "",
                 role: "",
-                isActive: true,
+                active: true,
             };
             localStorage.removeItem("userId");
             localStorage.removeItem("isLoggedIn");
