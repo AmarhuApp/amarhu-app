@@ -82,15 +82,20 @@ export default {
 
 .content-wrapper {
   display: flex;
-  flex: 1;
+  flex-grow: 1;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 
 .main-content {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0; /* ⚠️ sin esto, el contenido puede empujar hacia los lados */
 }
+
 
 h2 {
   font-size: 20px;

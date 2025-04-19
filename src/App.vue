@@ -1,23 +1,54 @@
 <template>
   <div id="app">
-    <router-view />
+    <!-- Esperar a que la sesión esté lista -->
+    <router-view v-if="ready" />
   </div>
 </template>
 
 <script>
+import { waitForAuth } from "@/utils/authReady";
+
 export default {
   name: "App",
+  data() {
+    return {
+      ready: false,
+    };
+  },
+  async mounted() {
+    // Esperar a que el token esté listo antes de montar las rutas
+    await waitForAuth();
+    this.ready = true;
+  },
 };
 </script>
 
 <style>
-html,
-body,
-#app {
-  height: 100%;
+html, body {
   margin: 0;
   padding: 0;
-  font-family: Arial, sans-serif; /* Fuente base */
-  background-color: #f5f5f5; /* Fondo básico */
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+}
+
+* {
+  box-sizing: border-box; /* 💡 evita que padding/margin rompa el diseño */
+}
+
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%; /* ✅ Clave para cubrir toda la pantalla */
+  background-color: #f9f9f9;
+  box-sizing: border-box;
+  overflow-x: hidden; /* ✅ Evita scroll horizontal global */
+}
+
+body > div:empty {
+  display: none !important;
 }
 </style>

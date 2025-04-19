@@ -17,4 +17,5 @@ const store = useUserStore();
 // ✅ Espera la restauración antes de montar
 store.initializeSession().finally(() => {
     app.mount("#app");
+
 });

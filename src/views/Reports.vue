@@ -133,35 +133,35 @@ export default {
   methods: {
     async fetchVideos() {
       try {
-        const response = await axios.get("http://localhost:3000/videos");
+        const response = await axios.get("https://api.pa-reporte.com/api/videos");
         this.videos = response.data;
         if (this.currentFilter === "videos") {
           this.filteredData = this.videos;
         }
       } catch (error) {
-        console.error("Error al obtener los videos:", error);
+        console.error("❌ Error al obtener los videos:", error);
       }
     },
     async fetchCaidos() {
       try {
-        const response = await axios.get("http://localhost:3000/caidos");
+        const response = await axios.get("https://api.pa-reporte.com/api/caidos");
         this.caidos = response.data;
         if (this.currentFilter === "caidos") {
           this.filteredData = this.caidos;
         }
       } catch (error) {
-        console.error("Error al obtener los videos caídos:", error);
+        console.error("❌ Error al obtener los videos caídos:", error);
       }
     },
     async fetchPagos() {
       try {
-        const response = await axios.get("http://localhost:3000/pagos");
+        const response = await axios.get("https://api.pa-reporte.com/api/pagos");
         this.pagos = response.data;
         if (this.currentFilter === "pagos") {
           this.filteredData = this.pagos;
         }
       } catch (error) {
-        console.error("Error al obtener leyenda de pagos:", error);
+        console.error("❌ Error al obtener leyenda de pagos:", error);
       }
     },
     setFilter(filter) {

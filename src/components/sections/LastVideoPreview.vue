@@ -76,18 +76,19 @@ export default {
   methods: {
     async fetchProductionData() {
       try {
-        const response = await axios.get("http://localhost:3000/resumenProduccion");
+        const response = await axios.get("https://api.pa-reporte.com/api/production");
         this.productionData = response.data;
       } catch (error) {
-        console.error("Error al obtener los datos de producción:", error);
+        console.error("❌ Error al obtener los datos de producción:", error);
       }
     },
     async fetchTopJRData() {
       try {
-        const response = await axios.get("http://localhost:3000/rankingJRs");
+        const response = await axios.get("https://api.pa-reporte.com/api/rankingJRs");
         const ranking = response.data;
 
-        // Obtener el JR con la mejor ganancia promedio
+        if (!ranking.length) return;
+
         const topJR = ranking[0];
         const quota = this.getQuota(topJR.id);
         const quotaProgress = Math.min(
@@ -101,7 +102,7 @@ export default {
           quotaProgress,
         };
       } catch (error) {
-        console.error("Error al obtener el JR más destacado:", error);
+        console.error("❌ Error al obtener el JR más destacado:", error);
       }
     },
     getQuota(jrId) {
@@ -116,6 +117,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .last-video-preview {

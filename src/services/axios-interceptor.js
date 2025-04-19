@@ -25,6 +25,9 @@ axios.interceptors.request.use(async (config) => {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // Asegura fondo blanco en todos los casos
+    document.body.style.backgroundColor = "#f9f9f9";
+
     return config;
 }, (error) => Promise.reject(error));
 

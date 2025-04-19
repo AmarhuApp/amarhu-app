@@ -82,6 +82,7 @@ export default {
 <style scoped>
 .sidebar {
   width: 200px;
+  flex-shrink: 0; /* evita que se contraiga */
   background-color: #ffffff;
   padding: 20px;
   box-shadow: 1px 0 1px rgba(0, 0, 0, 0.1);
