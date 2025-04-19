@@ -7,7 +7,6 @@
         <LastVideoPerformance v-if="isHomeRoute" />
         <router-view v-else />
       </div>
-      <!-- Mostrar LastVideoPreview en lugar de NewsFeed si estamos en /posts -->
       <LastVideoPreview v-if="isPostsRoute" />
       <NewsFeed v-else-if="isNewsFeedVisible" />
     </div>
@@ -35,6 +34,7 @@ export default {
   data() {
     return {
       totalVideos: 0,
+      baseURL: "https://api.pa-reporte.com", // URL base de producción
     };
   },
   computed: {
@@ -57,7 +57,7 @@ export default {
   methods: {
     async fetchProductionData() {
       try {
-        const response = await axios.get("http://localhost:3000/resumenProduccion");
+        const response = await axios.get(`${this.baseURL}/api/production`);
         const data = response.data;
 
         // Actualizamos el total de videos desde la API

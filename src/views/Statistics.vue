@@ -45,25 +45,26 @@ export default {
       resumenProduccion: null,
       resumenProduccionMesPasado: null,
       topProducers: [],
+      baseURL: "https://api.pa-reporte.com", // URL base de producción
     };
   },
   methods: {
     async fetchStatisticsData() {
       try {
         // Obtener datos de producción general
-        const resumenResponse = await axios.get("http://localhost:3000/resumenProduccion");
+        const resumenResponse = await axios.get(`${this.baseURL}/api/production`);
         this.resumenProduccion = resumenResponse.data;
 
         // Obtener datos de producción del mes pasado
-        const resumenMesPasadoResponse = await axios.get("http://localhost:3000/resumenProduccionMesPasado");
+        const resumenMesPasadoResponse = await axios.get(`${this.baseURL}/api/production-last-month`);
         this.resumenProduccionMesPasado = resumenMesPasadoResponse.data;
 
         // Obtener lista de videos
-        const videosResponse = await axios.get("http://localhost:3000/videos");
+        const videosResponse = await axios.get(`${this.baseURL}/api/videos`);
         this.videos = videosResponse.data;
 
         // Obtener top de redactores
-        const producersResponse = await axios.get("http://localhost:3000/topProducers");
+        const producersResponse = await axios.get(`${this.baseURL}/api/top-producers`);
         this.topProducers = producersResponse.data;
 
         // Renderizar las gráficas después de obtener los datos

@@ -2,21 +2,16 @@
   <div class="posts-container">
     <div class="newsfeed">
       <div v-for="post in posts" :key="post.id" class="post-card">
-        <!-- Título del post -->
         <h3 class="post-title">{{ post.title }}</h3>
 
-        <!-- Fecha del post -->
         <div class="post-date">{{ formatDate(post.date) }}</div>
 
-        <!-- Imagen del post (si existe) -->
         <div v-if="post.image" class="post-image-container">
           <img :src="post.image" alt="Post Image" class="post-image" />
         </div>
 
-        <!-- Contenido del post -->
         <p class="post-content" :class="{ 'large-text': !post.image }">{{ post.content }}</p>
 
-        <!-- Icono de "Me gusta" -->
         <div class="post-footer">
           <button class="reaction-button" @click="toggleReaction(post)">
             <span class="material-icons" :class="{ liked: post.liked }">
@@ -30,33 +25,34 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: "Posts",
   data() {
     return {
       posts: [], // Almacena las noticias obtenidas de la API
+      baseURL: "https://api.pa-reporte.com", // URL base de producción
     };
   },
   methods: {
-    fetchPosts() {
-      // Simulación de llamada a la API para obtener las noticias
-      fetch("http://localhost:3000/noticias")
-          .then((response) => response.json())
-          .then((data) => {
-            // Ordenamos las publicaciones
-            const orderedPosts = data.sort((a, b) => {
-              if (a.id === 4) return -1; // Publicación de bienvenida primero
-              if (b.id === 4) return 1;
-              return new Date(b.date) - new Date(a.date); // Orden descendente por fecha
-            });
+    async fetchPosts() {
+      try {
+        const response = await axios.get(`${this.baseURL}/api/noticias`);
+        // Simulación de ordenamiento y adición de estado "Me gusta" (ahora con axios)
+        const orderedPosts = response.data.sort((a, b) => {
+          if (a.id === 4) return -1; // Publicación de bienvenida primero
+          if (b.id === 4) return 1;
+          return new Date(b.date) - new Date(a.date); // Orden descendente por fecha
+        });
 
-            // Agregamos el estado inicial de "Me gusta"
-            this.posts = orderedPosts.map((post) => ({
-              ...post,
-              liked: false,
-            }));
-          })
-          .catch((error) => console.error("Error al obtener las noticias:", error));
+        this.posts = orderedPosts.map((post) => ({
+          ...post,
+          liked: false,
+        }));
+      } catch (error) {
+        console.error("Error al obtener las noticias:", error);
+      }
     },
     toggleReaction(post) {
       post.liked = !post.liked; // Alternar el estado de "Me gusta"
@@ -187,11 +183,3 @@ export default {
   color: #ff0000;
 }
 </style>
-
-
-
-
-
-
-
-
