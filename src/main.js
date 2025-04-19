@@ -1,16 +1,20 @@
-import "./assets/main.css";
-
+// src/main.js
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
+import "./assets/main.css";
+import "./services/axios-interceptor";
 
-// Importa el interceptor para que se ejecute globalmente
-import "./services/axios-interceptor"; // Agrega esta línea
+import { useUserStore } from "@/store/user";
 
 const app = createApp(App);
+app.use(createPinia());
+app.use(router);
 
-app.use(createPinia()); // Configura Pinia para manejar el estado global
-app.use(router); // Configura el router
+const store = useUserStore();
 
-app.mount("#app");
+// ✅ Espera la restauración antes de montar
+store.initializeSession().finally(() => {
+    app.mount("#app");
+});

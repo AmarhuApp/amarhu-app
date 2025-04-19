@@ -1,7 +1,7 @@
-// store/user.js
 import { defineStore } from "pinia";
 import axios from "axios";
-import { safeStorage } from "@/utils/safeStorage";
+import { markAuthReady, resetAuthReady } from "@/utils/authReady";
+import { safeSession } from "@/utils/safeSession";
 
 export const useUserStore = defineStore("user", {
     state: () => ({
@@ -13,15 +13,37 @@ export const useUserStore = defineStore("user", {
             role: "",
             active: true,
         },
+        loading: false,
     }),
+
     getters: {
-        isAuthenticated(state) {
-            return !!state.user.id;
-        },
+        isAuthenticated: (state) => !!state.user.id,
         isRole: (state) => (role) => state.user.role === role,
     },
+
     actions: {
+        async initializeSession() {
+            try {
+                const token = safeSession.get("token");
+                const userId = safeSession.get("userId");
+
+                if (token && userId) {
+                    console.log("🔐 Restaurando sesión...");
+                    await this.fetchUser();
+                } else {
+                    console.warn("⚠️ No hay sesión previa activa.");
+                }
+            } catch (err) {
+                console.error("❌ Error al inicializar sesión:", err);
+            } finally {
+                markAuthReady();
+            }
+        },
+
         async login(email, password) {
+            resetAuthReady();
+            this.loading = true;
+
             try {
                 const response = await axios.post(
                     "https://api.pa-reporte.com/api/auth/login",
@@ -29,100 +51,102 @@ export const useUserStore = defineStore("user", {
                     {
                         headers: {
                             "Content-Type": "application/json",
-                            "Accept": "application/json"
-                        }
+                            Accept: "application/json",
+                        },
                     }
                 );
 
                 if (response.status === 200) {
                     this.user = response.data;
-                    sessionStorage.setItem("token", response.data.jwt);
-                    sessionStorage.setItem("userId", this.user.id);
-                    sessionStorage.setItem("isLoggedIn", "true");
+
+                    safeSession.set("token", response.data.jwt);
+                    safeSession.set("userId", response.data.id);
+                    safeSession.set("isLoggedIn", "true");
+
+                    // ⏱️ Espera breve para asegurar persistencia del token
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
                     await this.fetchUser();
                 }
             } catch (error) {
-                console.error("Error al iniciar sesión:", error.response?.data || error.message || error);
+                console.error("❌ Error al iniciar sesión:", error.response?.data || error.message || error);
                 throw error;
+            } finally {
+                markAuthReady();
+                this.loading = false;
             }
         },
 
         async fetchUser() {
-            const userId = sessionStorage.getItem("userId");
-            const token = sessionStorage.getItem("token");
-            if (!userId || !token) {
-                console.warn("No hay un usuario logueado o falta el token.");
+            const token = safeSession.get("token");
+            const userId = safeSession.get("userId");
+
+            if (!token || !userId) {
+                console.warn("⚠️ No hay token o ID de usuario.");
                 return;
             }
 
             try {
-                const response = await axios.get(`https://api.pa-reporte.com/api/user`, {
-                    headers: { Authorization: `Bearer ${token}` }
+                const response = await axios.get("https://api.pa-reporte.com/api/user", {
+                    headers: { Authorization: `Bearer ${token}` },
                 });
 
-                if (response.status === 200) {
-                    const user = response.data;
-                    if (user.id === parseInt(userId)) {
-                        this.user = user;
-                    }
+                if (response.status === 200 && response.data?.id === parseInt(userId)) {
+                    this.user = response.data;
+                    console.log("✅ Usuario restaurado:", this.user);
                 }
             } catch (error) {
-                console.error("Error al obtener los datos del usuario:", error.response?.data || error.message || error);
+                console.error("❌ Error al obtener los datos del usuario:", error.response?.data || error.message || error);
             }
         },
 
         async updateUser(user) {
-            const token = sessionStorage.getItem("token");
+            const token = safeSession.get("token");
             try {
                 const response = await axios.put(
                     `https://api.pa-reporte.com/api/user/${user.id}`,
                     user,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-
                 if (response.status === 200) {
                     this.user = response.data;
-                } else {
-                    throw new Error("Error al actualizar el usuario.");
                 }
             } catch (error) {
-                console.error("Error al actualizar el usuario:", error.response?.data || error.message || error);
+                console.error("❌ Error al actualizar el usuario:", error.response?.data || error.message || error);
                 throw error;
             }
         },
 
         async updateAvatar(avatar) {
-            const token = sessionStorage.getItem("token");
+            const token = safeSession.get("token");
             try {
                 const response = await axios.put(
                     `https://api.pa-reporte.com/api/user/${this.user.id}`,
                     { ...this.user, avatar },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-
                 if (response.status === 200) {
                     this.user.avatar = response.data.avatar;
                 }
             } catch (error) {
-                console.error("Error al actualizar el avatar:", error.response?.data || error.message || error);
+                console.error("❌ Error al actualizar avatar:", error.response?.data || error.message || error);
                 throw error;
             }
         },
 
         async updatePassword(newPassword) {
-            const token = sessionStorage.getItem("token");
+            const token = safeSession.get("token");
             try {
                 const response = await axios.put(
                     `https://api.pa-reporte.com/api/user/${this.user.id}`,
                     { ...this.user, password: newPassword },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-
                 if (response.status === 200) {
                     alert("Contraseña actualizada correctamente.");
                 }
             } catch (error) {
-                console.error("Error al actualizar la contraseña:", error.response?.data || error.message || error);
+                console.error("❌ Error al actualizar contraseña:", error.response?.data || error.message || error);
                 alert("No se pudo actualizar la contraseña.");
                 throw error;
             }
@@ -137,9 +161,8 @@ export const useUserStore = defineStore("user", {
                 role: "",
                 active: true,
             };
-            sessionStorage.removeItem("userId");
-            sessionStorage.removeItem("isLoggedIn");
-            sessionStorage.removeItem("token");
+            safeSession.clear();
+            resetAuthReady();
         },
     },
 });
