@@ -97,11 +97,14 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  width: 100vw;
+  min-height: 100vh; /* ⬅️ Usamos min-height para evitar overflow */
+  width: 100%;
   background-color: #f9f9f9;
   padding: 20px;
+  box-sizing: border-box; /* ✅ asegura que el padding no cree overflow */
+  overflow: hidden; /* ⛔ elimina scroll innecesario */
 }
+
 
 .main-title {
   font-size: 32px;

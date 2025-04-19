@@ -66,11 +66,15 @@ export const useUserStore = defineStore("user", {
                     // ⏱️ Espera breve para asegurar persistencia del token
                     await new Promise(resolve => setTimeout(resolve, 100));
 
-                    await this.fetchUser();
+                    try {
+                        await this.fetchUser();
+                    } catch (fetchError) {
+                        console.warn("⚠️ Error al obtener usuario tras login:", fetchError);
+                    }
                 }
             } catch (error) {
                 console.error("❌ Error al iniciar sesión:", error.response?.data || error.message || error);
-                throw error;
+                throw error; // necesario para que el componente lo capture
             } finally {
                 markAuthReady();
                 this.loading = false;
