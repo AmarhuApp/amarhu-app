@@ -175,6 +175,8 @@
 <script>
 import axios from "axios";
 import { Chart, registerables } from "chart.js";
+import { safeSession } from "@/utils/safeSession"; // asegúrate de importar
+
 
 Chart.register(...registerables);
 
@@ -201,7 +203,7 @@ export default {
     async initializeUser() {
       try {
         // Obtén el ID del usuario desde localStorage o Vuex
-        this.userId = localStorage.getItem("userId") || null;
+        this.userId = safeSession.get("userId");
 
         if (!this.userId) {
           console.error("No se encontró el ID del usuario. Verifica la autenticación.");
@@ -211,6 +213,7 @@ export default {
         // Obtén los datos del usuario por ID
         const response = await axios.get(`${this.baseURL}/api/user`); // Utiliza /api/user
         this.userRole = response.data.role;
+        console.log("🔍 Rol detectado:", this.userRole);
 
         // Cargar datos según el rol
         if (this.isDirectivo) {
