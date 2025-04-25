@@ -51,29 +51,32 @@ export default {
   methods: {
     async fetchStatisticsData() {
       try {
-        // Obtener datos de producción general
         const resumenResponse = await axios.get(`${this.baseURL}/api/production`);
         this.resumenProduccion = resumenResponse.data;
 
-        // Obtener datos de producción del mes pasado
         const resumenMesPasadoResponse = await axios.get(`${this.baseURL}/api/production-last-month`);
         this.resumenProduccionMesPasado = resumenMesPasadoResponse.data;
 
-        // Obtener lista de videos
         const videosResponse = await axios.get(`${this.baseURL}/api/videos`);
         this.videos = videosResponse.data;
 
-        // Obtener top de redactores
         const producersResponse = await axios.get(`${this.baseURL}/api/top-producers`);
         this.topProducers = producersResponse.data;
 
-        // Renderizar las gráficas después de obtener los datos
-        this.renderCharts();
+        // Espera a que Vue actualice el DOM con refs disponibles
+        this.$nextTick(() => {
+          this.renderCharts();
+        });
+
       } catch (error) {
         console.error("Error al obtener los datos de estadísticas:", error);
       }
     },
     renderCharts() {
+      if (!this.$refs.chart1 || !this.$refs.chart2 || !this.$refs.chart3) {
+        console.warn("⏳ Los refs de los canvas aún no están disponibles.");
+        return;
+      }
       // Gráfica 1: Total de Ganancias por Mes
       new Chart(this.$refs.chart1, {
         type: "bar",

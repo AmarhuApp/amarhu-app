@@ -37,7 +37,7 @@
       <div class="horizontal-container">
         <!-- Contenedor del resumen -->
         <div>
-          <table v-if="productionData" class="production-table">
+          <table v-if="productionData && productionData.totalVideos != null" class="production-table">
             <tbody>
             <tr>
               <td class="label">Total de Videos:</td>
@@ -75,6 +75,8 @@
           </table>
           <p v-else>Cargando datos...</p>
         </div>
+
+
         <!-- Contenedor de la gráfica -->
         <div ref="chart" class="chart-container">
           <h3>Comparación de Producción</h3>
@@ -87,7 +89,6 @@
         </div>
       </div>
     </div>
-
     <!-- Contenido de Resumen JR's -->
     <div v-if="activeTab === 'jr'" class="ranking-container">
       <h3>Resumen JR's</h3>
@@ -175,8 +176,8 @@
 <script>
 import axios from "axios";
 import { Chart, registerables } from "chart.js";
-import { safeSession } from "@/utils/safeSession"; // asegúrate de importar
-
+import { useUserStore } from "@/store/user";
+import { waitForAuth } from "@/utils/authReady";
 
 Chart.register(...registerables);
 
@@ -184,73 +185,95 @@ export default {
   name: "VideoPerformance",
   data() {
     return {
-      activeTab: "produccion", // Controla la pestaña activa
-      productionData: null, // Datos de producción general o personal
-      productionDataLastMonth: null, // Datos del mes pasado (solo para directivo)
-      jrData: null, // Datos de JR's
-      topVideos: [], // Mejores videos para empleados
-      redactores: [], // Datos para jefe de redacción
+      activeTab: "produccion",
+      productionData: {
+        user: null,
+        totalVideos: 0,
+        videosCaidos: 0,
+        gananciaTotal: 0,
+        gananciaMenosImpuestos: 0,
+        gananciaNeta: 0,
+        costeProduccion: 0,
+        costeTotalProduccion: 0,
+        totalGeneradoPorCaidos: 0,
+      },
+      productionDataLastMonth: {
+        user: null,
+        totalVideos: 0,
+        videosCaidos: 0,
+        gananciaTotal: 0,
+        gananciaMenosImpuestos: 0,
+        gananciaNeta: 0,
+        costeProduccion: 0,
+        costeTotalProduccion: 0,
+        totalGeneradoPorCaidos: 0,
+      },
+      jrData: null,
+      topVideos: [],
+      redactores: [],
       chartInstance: null,
-      userId: null, // ID del usuario logueado
-      userRole: null, // Rol del usuario logueado
-      baseURL: "https://api.pa-reporte.com", // URL base de producción
+      baseURL: "https://api.pa-reporte.com",
     };
   },
-  mounted() {
-    this.initializeUser(); // Inicializa el usuario y carga su ID y rol
+  async mounted() {
+    await waitForAuth();
+    if (!this.userStore.user.id) {
+      console.error("⚠️ Usuario no autenticado.");
+      return;
+    }
+
+    console.log("🔑 Usuario listo:", this.userStore.user.id, this.userStore.user.role);
+    await this.loadDataBasedOnRole();
   },
   methods: {
-    async initializeUser() {
+    async loadDataBasedOnRole() {
+      console.log("🔍 Verificando rol: Directivo =", this.isDirectivo);
       try {
-        // Obtén el ID del usuario desde localStorage o Vuex
-        this.userId = safeSession.get("userId");
-
-        if (!this.userId) {
-          console.error("No se encontró el ID del usuario. Verifica la autenticación.");
-          return;
-        }
-
-        // Obtén los datos del usuario por ID
-        const response = await axios.get(`${this.baseURL}/api/user`); // Utiliza /api/user
-        this.userRole = response.data.role;
-        console.log("🔍 Rol detectado:", this.userRole);
-
-        // Cargar datos según el rol
         if (this.isDirectivo) {
-          this.fetchProductionData(); // Producción general para directivo
+          await this.fetchProductionData();
         } else {
-          this.fetchPersonalProduction(); // Producción personal para otros roles
+          await this.fetchPersonalProduction();
         }
 
-        // Cargar datos adicionales si aplica
-        this.fetchJRData();
-        this.fetchTopVideos(); // Mejores videos para empleados
+        await this.fetchJRData();
+        await this.fetchTopVideos();
       } catch (error) {
-        console.error("Error al inicializar el usuario:", error.message);
+        console.error("❌ Error al cargar datos según rol:", error);
       }
     },
     async fetchProductionData() {
+      console.log("📥 Entrando a fetchProductionData()");
       try {
-        const response = await axios.get(`${this.baseURL}/api/production`); // Utiliza /api/production
-        const lastMonthResponse = await axios.get(
-            `${this.baseURL}/api/production-last-month` // Utiliza /api/production-last-month
-        );
-        this.productionData = response.data;
-        this.productionDataLastMonth = lastMonthResponse.data;
+        console.log("📡 Solicitando datos a producción...");
+        const response = await axios.get(`${this.baseURL}/api/production`);
+        console.log("✅ Respuesta producción:", response.data);
+        Object.assign(this.productionData, response.data);
+        console.log("📦 productionData actualizado:", this.productionData);
 
-        if (this.productionData && this.productionDataLastMonth) {
-          this.renderChart();
-        }
+        // Render Chart solo si necesario
+        // this.renderChart();
+
+        // Ahora hacer la segunda llamada de forma aislada
+        console.log("📡 Solicitando datos del mes pasado...");
+        const lastMonthResponse = await axios.get(`${this.baseURL}/api/production-last-month`);
+        console.log("✅ Respuesta producción mes pasado:", lastMonthResponse.data);
+        this.productionDataLastMonth = lastMonthResponse.data;
+        console.log("📦 productionDataLastMonth actualizado:", this.productionDataLastMonth);
+
+        // Revisa si ambos están listos y luego renderiza
+        this.renderChart();
+
       } catch (error) {
-        console.error("Error al obtener datos de producción:", error.message);
+        console.error("❌ Error capturado:", error.message);
+        console.error("❌ Detalle completo:", error);
       }
     },
     async fetchPersonalProduction() {
       try {
         const response = await axios.get(
-            `${this.baseURL}/api/personal-production/${this.userId}` // Utiliza /api/personal-production/{userId}
+            `${this.baseURL}/api/personal-production/${this.userStore.user.id}`
         );
-        this.productionData = response.data; // Usamos productionData para reutilizar en la vista
+        this.productionData = response.data;
       } catch (error) {
         console.error("Error al obtener datos de producción personal:", error.message);
       }
@@ -258,7 +281,7 @@ export default {
     async fetchJRData() {
       if (this.isDirectivo || this.isJefePrensa) {
         try {
-          const response = await axios.get(`${this.baseURL}/api/rankingJRs`); // Utiliza /api/rankingJRs
+          const response = await axios.get(`${this.baseURL}/api/rankingJRs`);
           this.jrData = response.data;
         } catch (error) {
           console.error("Error al obtener datos de JR's:", error.message);
@@ -269,35 +292,55 @@ export default {
       if (this.isEmpleado) {
         try {
           const response = await axios.get(
-              `${this.baseURL}/api/personal-videos/${this.userId}` // Utiliza /api/personal-videos/{userId}
+              `${this.baseURL}/api/personal-videos/${this.userStore.user.id}`
           );
           this.topVideos = response.data
               .sort((a, b) => b.estimatedRevenue - a.estimatedRevenue)
-              .slice(0, 5); // Tomar los 5 mejores videos
+              .slice(0, 5);
         } catch (error) {
           console.error("Error al obtener los mejores videos:", error.message);
         }
       }
     },
     renderChart() {
-      if (this.chartInstance) {
-        this.chartInstance.destroy();
+      // Verifica que hay datos suficientes
+      if (!this.productionData || !this.productionDataLastMonth) {
+        console.warn("⏳ Datos incompletos para gráfica.");
+        return;
       }
 
-      const normalizedData = this.normalizeData();
+      // Debug de datos brutos
+      console.log("📋 Datos actuales:", this.productionData);
+      console.log("📋 Datos mes pasado:", this.productionDataLastMonth);
 
+      // Normaliza y valida
+      const normalizedData = this.normalizeData();
+      console.log("📊 Datos normalizados:", normalizedData);
+
+      // Valida que hay datos útiles para graficar
+      if (!normalizedData.totalVideos.current || !normalizedData.totalVideos.lastMonth) {
+        console.warn("⚠️ Datos normalizados insuficientes.");
+        return;
+      }
+
+      // Espera al DOM y renderiza
       this.$nextTick(() => {
-        const ctx = document.getElementById("radarChart").getContext("2d");
+        const canvas = document.getElementById("radarChart");
+        if (!canvas) {
+          console.error("❌ No se encontró el canvas.");
+          return;
+        }
+
+        const ctx = canvas.getContext("2d");
+
+        if (this.chartInstance) {
+          this.chartInstance.destroy();
+        }
+
         this.chartInstance = new Chart(ctx, {
           type: "radar",
           data: {
-            labels: [
-              "Total Videos",
-              "Videos Caídos",
-              "Ganancia Total",
-              "Ganancia Neta",
-              "Coste Producción",
-            ],
+            labels: ["Total Videos", "Videos Caídos", "Ganancia Total", "Ganancia Neta", "Coste Producción"],
             datasets: [
               {
                 label: "Este Mes",
@@ -330,77 +373,53 @@ export default {
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: "top",
-              },
-            },
-            scales: {
-              r: {
-                min: 1,
-                max: 10,
-                ticks: {
-                  stepSize: 1,
-                },
-              },
-            },
+            plugins: { legend: { position: "top" } },
+            scales: { r: { min: 1, max: 10, ticks: { stepSize: 1 } } },
           },
         });
       });
     },
     normalizeData() {
       const normalize = (value, min, max) => 1 + 9 * ((value - min) / (max - min));
-
       return {
         totalVideos: {
           current: normalize(this.productionData.totalVideos, 0, 1400),
-          lastMonth: this.isDirectivo
-              ? normalize(this.productionDataLastMonth.totalVideos, 0, 1400)
-              : null,
+          lastMonth: this.isDirectivo ? normalize(this.productionDataLastMonth.totalVideos, 0, 1400) : null,
         },
         videosCaidos: {
           current: normalize(this.productionData.videosCaidos, 0, 400),
-          lastMonth: this.isDirectivo
-              ? normalize(this.productionDataLastMonth.videosCaidos, 0, 400)
-              : null,
+          lastMonth: this.isDirectivo ? normalize(this.productionDataLastMonth.videosCaidos, 0, 400) : null,
         },
         gananciaTotal: {
           current: normalize(this.productionData.gananciaTotal, 0, 45000),
-          lastMonth: this.isDirectivo
-              ? normalize(this.productionDataLastMonth.gananciaTotal, 0, 45000)
-              : null,
+          lastMonth: this.isDirectivo ? normalize(this.productionDataLastMonth.gananciaTotal, 0, 45000) : null,
         },
         gananciaNeta: {
           current: normalize(this.productionData.gananciaNeta, 0, 40000),
-          lastMonth: this.isDirectivo
-              ? normalize(this.productionDataLastMonth.gananciaNeta, 0, 40000)
-              : null,
+          lastMonth: this.isDirectivo ? normalize(this.productionDataLastMonth.gananciaNeta, 0, 40000) : null,
         },
         costeTotalProduccion: {
           current: normalize(this.productionData.costeTotalProduccion, 0, 30000),
-          lastMonth: this.isDirectivo
-              ? normalize(
-                  this.productionDataLastMonth.costeTotalProduccion,
-                  0,
-                  30000
-              )
-              : null,
+          lastMonth: this.isDirectivo ? normalize(this.productionDataLastMonth.costeTotalProduccion, 0, 30000) : null,
         },
       };
     },
   },
   computed: {
+    userStore() {
+      return useUserStore();
+    },
     isDirectivo() {
-      return this.userRole === "DIRECTIVO";
+      return this.userStore.user.role === "DIRECTIVO";
     },
     isJefePrensa() {
-      return this.userRole === "JEFE_PRENSA";
+      return this.userStore.user.role === "JEFE_PRENSA";
     },
     isJefeRedaccion() {
-      return this.userRole === "JEFE_REDACCION";
+      return this.userStore.user.role === "JEFE_REDACCION";
     },
     isEmpleado() {
-      return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userRole);
+      return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userStore.user.role);
     },
     sortedJefes() {
       return this.jrData
@@ -686,6 +705,13 @@ h3 {
   font-size: 17px;
   font-weight: bold;
 }
+
+canvas {
+  background-color: rgba(0, 255, 0, 0.1); /* Verde muy tenue */
+  width: 100% !important;
+  height: 100% !important;
+}
+
 
 /* Media Queries */
 
