@@ -48,18 +48,16 @@ export default {
     return {
       email: "",
       password: "",
-      isLoading: false, // Estado de carga
-      error: null, // Mensaje de error
+      isLoading: false,
+      error: null,
     };
   },
   methods: {
     async login() {
       const userStore = useUserStore();
 
-      // Resetear el estado de error
       this.error = null;
 
-      // Validación básica antes de enviar
       if (!this.email.trim() || !this.password.trim()) {
         this.error = "Por favor, completa todos los campos.";
         return;
@@ -68,13 +66,12 @@ export default {
       try {
         this.isLoading = true;
 
-        // Llamar a la acción `login` del store
+        // Llamar solo al login, que ya devuelve todo
         await userStore.login(this.email.trim(), this.password.trim());
-        await userStore.fetchUser();
-        // Redirigir al Home
+
+        // Redirigir al Home después de login exitoso
         this.$router.push({ name: "Home" });
       } catch (error) {
-        // Manejo de errores específicos
         if (error.response && error.response.status === 401) {
           this.error = "Correo o contraseña incorrectos.";
         } else if (error.message) {

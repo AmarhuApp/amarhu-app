@@ -25,11 +25,11 @@ export const useUserStore = defineStore("user", {
         async initializeSession() {
             try {
                 const token = safeSession.get("token");
-                const userId = safeSession.get("userId");
+                const userData = safeSession.get("user");
 
-                if (token && userId) {
+                if (token && userData) {
                     console.log("🔐 Restaurando sesión...");
-                    await this.fetchUser();
+                    this.user = JSON.parse(userData);
                 } else {
                     console.warn("⚠️ No hay sesión previa activa.");
                 }
@@ -43,7 +43,6 @@ export const useUserStore = defineStore("user", {
         async login(email, password) {
             resetAuthReady();
             this.loading = true;
-
             try {
                 const response = await axios.post(
                     "https://api.pa-reporte.com/api/auth/login",
@@ -57,50 +56,22 @@ export const useUserStore = defineStore("user", {
                 );
 
                 if (response.status === 200) {
-                    this.user = response.data;
+                    const { jwt, user } = response.data;
 
-                    safeSession.set("token", response.data.jwt);
-                    safeSession.set("userId", response.data.id);
+                    this.user = user;
+                    console.log("🔐 Usuario después del login:", this.user);
+
+                    safeSession.set("token", jwt);
+                    safeSession.set("userId", user.id); // Opcional, ya está en this.user
+                    safeSession.set("user", JSON.stringify(user)); // Guarda todo
                     safeSession.set("isLoggedIn", "true");
-
-                    // ⏱️ Espera breve para asegurar persistencia del token
-                    await new Promise(resolve => setTimeout(resolve, 100));
-
-                    try {
-                        await this.fetchUser();
-                    } catch (fetchError) {
-                        console.warn("⚠️ Error al obtener usuario tras login:", fetchError);
-                    }
                 }
             } catch (error) {
                 console.error("❌ Error al iniciar sesión:", error.response?.data || error.message || error);
-                throw error; // necesario para que el componente lo capture
+                throw error;
             } finally {
                 markAuthReady();
                 this.loading = false;
-            }
-        },
-
-        async fetchUser() {
-            const token = safeSession.get("token");
-            const userId = safeSession.get("userId");
-
-            if (!token || !userId) {
-                console.warn("⚠️ No hay token o ID de usuario.");
-                return;
-            }
-
-            try {
-                const response = await axios.get("https://api.pa-reporte.com/api/user", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                if (response.status === 200 && response.data?.id === parseInt(userId)) {
-                    this.user = response.data;
-                    console.log("✅ Usuario restaurado:", this.user);
-                }
-            } catch (error) {
-                console.error("❌ Error al obtener los datos del usuario:", error.response?.data || error.message || error);
             }
         },
 
@@ -114,6 +85,7 @@ export const useUserStore = defineStore("user", {
                 );
                 if (response.status === 200) {
                     this.user = response.data;
+                    safeSession.set("user", JSON.stringify(this.user));
                 }
             } catch (error) {
                 console.error("❌ Error al actualizar el usuario:", error.response?.data || error.message || error);
@@ -131,6 +103,7 @@ export const useUserStore = defineStore("user", {
                 );
                 if (response.status === 200) {
                     this.user.avatar = response.data.avatar;
+                    safeSession.set("user", JSON.stringify(this.user));
                 }
             } catch (error) {
                 console.error("❌ Error al actualizar avatar:", error.response?.data || error.message || error);

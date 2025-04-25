@@ -41,14 +41,12 @@
       <thead>
       <tr>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">#</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Miniatura</th>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">ID</th>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Titulo</th>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Fecha</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Visualizaciones</th>
+        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Views</th>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Revenue Estimado</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Revenue por Anuncios</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Duración Promedio de Vista</th>
+        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">WVD</th>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">RPM</th>
 
         <!-- Columnas de la tabla de Leyenda de Pagos -->
@@ -73,15 +71,11 @@
           v-if="currentFilter === 'videos' || currentFilter === 'caidos'"
       >
         <td>{{ index + 1 }}</td>
-        <td>
-          <img :src="item.thumbnail" alt="Miniatura" class="thumbnail" />
-        </td>
-        <td>{{ item.id }}</td>
+        <td>{{ item.videoId }}</td>
         <td>{{ item.title }}</td>
         <td>{{ item.date }}</td>
         <td>{{ item.views }}</td>
         <td>{{ item.estimatedRevenue }}</td>
-        <td>{{ item.estimatedAdRevenue }}</td>
         <td>{{ item.averageViewDuration }}</td>
         <td>{{ item.rpm }}</td>
       </tr>
@@ -203,6 +197,12 @@ export default {
 
 
 <style scoped>
+.reports-table {
+  display: block; /* 🔑 Para que respete el ancho y permita scroll */
+  overflow-x: auto; /* 💡 Permite scroll horizontal solo si es necesario */
+  white-space: nowrap; /* 🔥 Evita que las celdas se rompan en varias líneas */
+}
+
 .reports {
   padding: 20px;
 }
@@ -316,7 +316,9 @@ h1 {
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  overflow: hidden;
+  display: block; /* 🔑 Para que respete el ancho y permita scroll */
+  overflow-x: auto; /* 💡 Permite scroll horizontal solo si es necesario */
+  white-space: nowrap;
 }
 
 .reports-table th,

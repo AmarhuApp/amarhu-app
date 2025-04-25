@@ -29,9 +29,10 @@ html, body {
   padding: 0;
   height: 100%;
   width: 100%;
-  overflow-x: hidden;
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 * {
@@ -45,7 +46,6 @@ html, body {
   min-height: 100%; /* ✅ Clave para cubrir toda la pantalla */
   background-color: #f9f9f9;
   box-sizing: border-box;
-  overflow-x: hidden; /* ✅ Evita scroll horizontal global */
 }
 
 body > div:empty {

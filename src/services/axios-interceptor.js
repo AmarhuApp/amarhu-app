@@ -18,18 +18,27 @@ function waitForToken(timeout = 3000) {
 }
 
 axios.interceptors.request.use(async (config) => {
-    await waitForToken();
     const token = safeSession.get("token");
 
-    if (token) {
+    // Excepciones: No cancelar si es login u otra ruta pública
+    const publicRoutes = ["/api/auth/login", "/api/auth/register"];
+    const isPublicRoute = publicRoutes.some(route => config.url.includes(route));
+
+    if (!token && !isPublicRoute) {
+        console.warn("⏳ Token no disponible, cancelando solicitud:", config.url);
+        return Promise.reject(new axios.Cancel("Token no disponible"));
+    }
+
+    if (token && !isPublicRoute) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Asegura fondo blanco en todos los casos
     document.body.style.backgroundColor = "#f9f9f9";
 
     return config;
 }, (error) => Promise.reject(error));
+
+
 
 axios.interceptors.response.use(
     response => response,
