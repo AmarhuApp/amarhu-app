@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <h1 class="main-title">Bienvenido a Amarhu</h1>
+    <h1 class="main-title">Bienvenido a Metrix</h1>
 
     <div class="login-card">
       <h2>Iniciar Sesión</h2>

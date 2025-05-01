@@ -1,25 +1,18 @@
 <template>
   <div class="reports">
-    <h1>Reportes de Videos Producidos</h1>
+    <h1>{{ isEmpleado ? 'Detalles de Producción' : 'Reportes de Videos Producidos' }}</h1>
 
     <!-- Botón de Filtros y Barra de Búsqueda -->
     <div class="filters-container">
-      <!-- Botón de Filtros -->
       <button @click="toggleFilterMenu" class="filter-button">Filtros</button>
       <div v-if="showFilterMenu" class="filter-menu">
         <button @click="setFilter('videos')">Videos</button>
         <button @click="setFilter('caidos')">Videos Caídos</button>
-        <button @click="setFilter('pagos')">Leyenda de Pagos</button>
+        <button v-if="!isEmpleado" @click="setFilter('pagos')">Leyenda de Pagos</button>
       </div>
 
-      <!-- Barra de búsqueda con lupa -->
       <div class="search-container">
-        <span
-            class="material-icons search-icon"
-            @click="toggleSearchBar"
-        >
-          search
-        </span>
+        <span class="material-icons search-icon" @click="toggleSearchBar">search</span>
         <input
             type="text"
             class="search-bar"
@@ -44,27 +37,35 @@
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">ID</th>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Titulo</th>
         <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Fecha</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Views</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Revenue Estimado</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">WVD</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">RPM</th>
+        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Views</th>
+        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Revenue Estimado</th>
+        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">WVD</th>
+        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">RPM</th>
 
-        <!-- Columnas de la tabla de Leyenda de Pagos -->
+        <!-- Condicional para empleados -->
+        <template v-if="isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">
+          <th>Hora</th>
+          <th>Visualización</th>
+          <th>Ingresos Estimados</th>
+          <th>Monto Redactor</th>
+          <th>Tiempo de Vista (s)</th>
+          <th>RPM Real</th>
+          <th>Categoría</th>
+          <th>Color</th>
+        </template>
+
         <th v-if="currentFilter === 'pagos'">Código</th>
         <th v-if="currentFilter === 'pagos'">Nombre</th>
         <th v-if="currentFilter === 'pagos'">Videos Totales</th>
         <th v-if="currentFilter === 'pagos'">Videos Caídos</th>
         <th v-if="currentFilter === 'pagos'">Ganancia Total</th>
         <th v-if="currentFilter === 'pagos'">Ganancia Total menos Impuestos</th>
-        <th v-if="currentFilter === 'pagos'">
-          Ganancia después de Caídos e Impuestos
-        </th>
+        <th v-if="currentFilter === 'pagos'">Ganancia después de Caídos e Impuestos</th>
         <th v-if="currentFilter === 'pagos'">Comisión $</th>
         <th v-if="currentFilter === 'pagos'">Comisión S/.</th>
       </tr>
       </thead>
       <tbody>
-      <!-- Filas de Videos y Videos Caídos -->
       <tr
           v-for="(item, index) in filteredData"
           :key="item.id"
@@ -73,14 +74,45 @@
         <td>{{ index + 1 }}</td>
         <td>{{ item.videoId }}</td>
         <td>{{ item.title }}</td>
-        <td>{{ item.date }}</td>
-        <td>{{ item.views }}</td>
-        <td>{{ item.estimatedRevenue }}</td>
-        <td>{{ item.averageViewDuration }}</td>
-        <td>{{ item.rpm }}</td>
+        <td>{{ item.fechaPublicacion }}</td>
+
+        <!-- Normal para directivos -->
+        <template v-if="!isEmpleado">
+          <td>{{ item.views }}</td>
+          <td>{{ item.estimatedRevenue }}</td>
+          <td>{{ item.averageViewDuration }}</td>
+          <td>{{ item.rpm }}</td>
+        </template>
+
+        <!-- Para empleados -->
+        <template v-else>
+          <td>{{ item.horaPublicacion }}</td>
+          <td>{{ item.views }}</td>
+          <td>{{ item.estimatedRevenue }}</td>
+          <td>
+              <span v-if="item.estimatedRevenue >= 10">
+                ${{ (item.estimatedRevenue * 0.166452).toFixed(2) }}
+              </span>
+            <span v-else>-</span>
+          </td>
+          <td>{{ item.averageViewDuration }}</td>
+          <td>{{ item.rpm || '-' }}</td>
+          <td>{{ item.categoria }}</td>
+          <td>
+            <div
+                :style="{
+              backgroundColor: item.colorCategoria,
+              width: '50px',
+              height: '20px',
+              borderRadius: '4px',
+              margin: 'auto'
+            }"
+            ></div>
+
+          </td>
+        </template>
       </tr>
 
-      <!-- Filas de Leyenda de Pagos -->
       <tr
           v-for="(pago, index) in filteredData"
           :key="pago.codigo"
@@ -102,8 +134,10 @@
 </template>
 
 
+
 <script>
 import axios from "axios";
+import { useUserStore } from "@/store/user";
 
 export default {
   name: "Reports",
@@ -119,16 +153,89 @@ export default {
       searchExpanded: false, // Controla la expansión de la barra de búsqueda
     };
   },
+  computed: {
+    userStore() {
+      return useUserStore();
+    },
+    isEmpleado() {
+      return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userStore.user.role);
+    },
+  },
   created() {
-    this.fetchVideos();
-    this.fetchCaidos();
-    this.fetchPagos();
+    if (this.isEmpleado) {
+      this.fetchPersonalVideos();
+    } else {
+      this.fetchVideos();
+      this.fetchCaidos();
+      this.fetchPagos();
+    }
   },
   methods: {
+    async fetchPersonalVideos() {
+      try {
+        const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${this.userStore.user.id}`);
+        this.videos = response.data.map((item) => {
+          const montoEmpleado = (item.estimatedRevenue >= 10)
+              ? item.estimatedRevenue * 0.166452
+              : 0;
+
+          let categoria = "Sin Clasificación";
+          let colorCategoria = "#BDC3C7"; // Gris por defecto
+          const rpm = item.rpm ? parseFloat(item.rpm.toFixed(2)) : 0;
+
+          if (rpm < 1.06) {
+            categoria = "Extremadamente Bajo";
+            colorCategoria = "#C0392B";
+          } else if (rpm <= 1.57) {
+            categoria = "Bajo Impacto";
+            colorCategoria = "#E74C3C";
+          } else if (rpm <= 2.13) {
+            categoria = "Buen Impacto";
+            colorCategoria = "#F1C40F";
+          } else if (rpm <= 2.68) {
+            categoria = "Alto Impacto";
+            colorCategoria = "#3498DB";
+          } else if (rpm >= 2.71) {
+            categoria = "Impacto Sobresaliente";
+            colorCategoria = "#27AE60";
+          }
+          const fechaOriginal = new Date(item.date);
+          const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+          const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+
+          return {
+            ...item,
+            montoEmpleado,
+            categoria,
+            colorCategoria,
+            fechaPublicacion,
+            horaPublicacion,
+            rpm,
+          };
+        });
+
+        if (this.currentFilter === "videos") {
+          this.filteredData = this.videos;
+        }
+      } catch (error) {
+        console.error("❌ Error al obtener videos personales:", error);
+      }
+    },
     async fetchVideos() {
       try {
         const response = await axios.get("https://api.pa-reporte.com/api/videos");
-        this.videos = response.data;
+        this.videos = response.data.map(item => {
+          const fechaOriginal = new Date(item.date);
+          const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+          return {
+            ...item,
+            fechaPublicacion
+          };
+        });
         if (this.currentFilter === "videos") {
           this.filteredData = this.videos;
         }
@@ -185,15 +292,18 @@ export default {
       this.showFilterMenu = !this.showFilterMenu;
     },
     toggleSearchBar() {
-      this.searchExpanded = !this.searchExpanded; // Alterna entre expandir y contraer
+      this.searchExpanded = !this.searchExpanded;
       if (!this.searchExpanded) {
-        this.searchQuery = ""; // Limpia la búsqueda al contraer
-        this.filterData(); // Reinicia los resultados
+        this.searchQuery = "";
+        this.filterData();
       }
     },
   },
 };
 </script>
+
+
+
 
 
 <style scoped>
