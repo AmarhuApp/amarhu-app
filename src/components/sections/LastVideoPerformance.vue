@@ -22,21 +22,53 @@
       >
         Redactores
       </button>
-      <button
-          v-if="isEmpleado"
-          :class="{ 'active-tab': activeTab === 'topVideos' }"
-          @click="activeTab = 'topVideos'"
-      >
-        Mis Mejores Videos
-      </button>
     </div>
 
     <!-- Contenido de Resumen de Producción -->
     <div v-if="activeTab === 'produccion'">
       <h3>Resumen de Producción</h3>
-      <div class="horizontal-container">
-        <!-- Contenedor del resumen -->
-        <div>
+      <p v-if="isEmpleado && new Date().getDate() <= 4" class="info-aviso">
+        Mostrando datos del mes anterior (hasta el 4 de este mes)
+      </p>
+      <div :class="['horizontal-container', { 'full-width-card': isEmpleado }]">
+        <!-- Lógica diferenciada -->
+        <!-- Dentro del template -->
+        <div v-if="isEmpleado">
+          <table
+              v-if="(useLastMonth ? productionDataLastMonth : productionData).totalVideos != null"
+              class="production-table"
+          >
+            <tbody>
+            <tr>
+              <td class="label">Total de Videos:</td>
+              <td class="value">{{ useLastMonth ? productionDataLastMonth.totalVideos : productionData.totalVideos }}</td>
+            </tr>
+            <tr>
+              <td class="label">Videos Caídos:</td>
+              <td class="value">{{ useLastMonth ? productionDataLastMonth.videosCaidos : productionData.videosCaidos }}</td>
+            </tr>
+            <tr>
+              <td class="label">Videos Productivos:</td>
+              <td class="value">
+                {{
+                  (useLastMonth
+                      ? productionDataLastMonth.totalVideos - productionDataLastMonth.videosCaidos
+                      : productionData.totalVideos - productionData.videosCaidos)
+                }}
+              </td>
+            </tr>
+            <tr>
+              <td class="label">Comisión:</td>
+              <td class="value">
+                ${{ (useLastMonth ? productionDataLastMonth.comisionDolares : productionData.comisionDolares)?.toFixed(2) || '0.00' }} USD
+              </td>
+            </tr>
+            </tbody>
+          </table>
+          <p v-else>Cargando datos...</p>
+        </div>
+
+        <div v-else>
           <table v-if="productionData && productionData.totalVideos != null" class="production-table">
             <tbody>
             <tr>
@@ -74,21 +106,21 @@
             </tbody>
           </table>
           <p v-else>Cargando datos...</p>
-        </div>
 
-
-        <!-- Contenedor de la gráfica -->
-        <div ref="chart" class="chart-container">
-          <h3>Comparación de Producción</h3>
-          <canvas id="radarChart"></canvas>
-          <div class="button-container">
-            <button @click="goToStats" class="circle-button">
-              <span>Go Stats</span>
-            </button>
+          <!-- Contenedor de la gráfica -->
+          <div ref="chart" class="chart-container">
+            <h3>Comparación de Producción</h3>
+            <canvas id="radarChart"></canvas>
+            <div class="button-container">
+              <button @click="goToStats" class="circle-button">
+                <span>Go Stats</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
     <!-- Contenido de Resumen JR's -->
     <div v-if="activeTab === 'jr'" class="ranking-container">
       <h3>Resumen JR's</h3>
@@ -150,26 +182,9 @@
         </div>
       </div>
     </div>
-
-    <!-- Contenido de Mejores Videos (para Empleados) -->
-    <div v-if="activeTab === 'topVideos'" class="video-ranking-container">
-      <h3>Mis Mejores Videos</h3>
-      <div
-          class="video-card"
-          v-for="(video, index) in topVideos"
-          :key="video.id"
-      >
-        <img :src="video.thumbnail" alt="Thumbnail" class="video-thumbnail" />
-        <div class="video-info">
-          <h4 class="video-title">{{ video.title }}</h4>
-          <p class="video-revenue">
-            Ganancias Estimadas: ${{ video.estimatedRevenue.toFixed(2) }}
-          </p>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
+
 
 
 
@@ -217,55 +232,40 @@ export default {
   },
   async mounted() {
     await waitForAuth();
-    if (!this.userStore.user.id) {
-      console.error("⚠️ Usuario no autenticado.");
-      return;
-    }
 
-    console.log("🔑 Usuario listo:", this.userStore.user.id, this.userStore.user.role);
-    await this.loadDataBasedOnRole();
+    const unwatch = this.$watch(
+        () => this.userStore.user.id,
+        async (id) => {
+          if (id) {
+            console.log("✅ Usuario con ID listo:", id);
+            await this.loadDataBasedOnRole();
+            unwatch(); // detiene el watch después de obtener el ID
+          }
+        },
+        { immediate: true }
+    );
   },
   methods: {
     async loadDataBasedOnRole() {
       console.log("🔍 Verificando rol: Directivo =", this.isDirectivo);
       try {
+        const today = new Date();
+        const day = today.getDate();
+
         if (this.isDirectivo) {
           await this.fetchProductionData();
         } else {
-          await this.fetchPersonalProduction();
+          if (day <= 4) {
+            await this.fetchPersonalProductionLastMonth();
+          } else {
+            await this.fetchPersonalProduction();
+          }
         }
 
         await this.fetchJRData();
         await this.fetchTopVideos();
       } catch (error) {
         console.error("❌ Error al cargar datos según rol:", error);
-      }
-    },
-    async fetchProductionData() {
-      console.log("📥 Entrando a fetchProductionData()");
-      try {
-        console.log("📡 Solicitando datos a producción...");
-        const response = await axios.get(`${this.baseURL}/api/production`);
-        console.log("✅ Respuesta producción:", response.data);
-        Object.assign(this.productionData, response.data);
-        console.log("📦 productionData actualizado:", this.productionData);
-
-        // Render Chart solo si necesario
-        // this.renderChart();
-
-        // Ahora hacer la segunda llamada de forma aislada
-        console.log("📡 Solicitando datos del mes pasado...");
-        const lastMonthResponse = await axios.get(`${this.baseURL}/api/production-last-month`);
-        console.log("✅ Respuesta producción mes pasado:", lastMonthResponse.data);
-        this.productionDataLastMonth = lastMonthResponse.data;
-        console.log("📦 productionDataLastMonth actualizado:", this.productionDataLastMonth);
-
-        // Revisa si ambos están listos y luego renderiza
-        this.renderChart();
-
-      } catch (error) {
-        console.error("❌ Error capturado:", error.message);
-        console.error("❌ Detalle completo:", error);
       }
     },
     async fetchPersonalProduction() {
@@ -276,6 +276,29 @@ export default {
         this.productionData = response.data;
       } catch (error) {
         console.error("Error al obtener datos de producción personal:", error.message);
+      }
+    },
+    async fetchPersonalProductionLastMonth() {
+      try {
+        const response = await axios.get(
+            `${this.baseURL}/api/personal-production/last-month/${this.userStore.user.id}`
+        );
+        this.productionData = response.data;
+      } catch (error) {
+        console.error("Error al obtener datos del mes pasado:", error.message);
+      }
+    },
+    async fetchProductionData() {
+      try {
+        const response = await axios.get(`${this.baseURL}/api/production`);
+        Object.assign(this.productionData, response.data);
+
+        const lastMonthResponse = await axios.get(`${this.baseURL}/api/production-last-month`);
+        this.productionDataLastMonth = lastMonthResponse.data;
+
+        this.renderChart();
+      } catch (error) {
+        console.error("❌ Error capturado:", error.message);
       }
     },
     async fetchJRData() {
@@ -303,44 +326,24 @@ export default {
       }
     },
     renderChart() {
-      // Verifica que hay datos suficientes
-      if (!this.productionData || !this.productionDataLastMonth) {
-        console.warn("⏳ Datos incompletos para gráfica.");
-        return;
-      }
-
-      // Debug de datos brutos
-      console.log("📋 Datos actuales:", this.productionData);
-      console.log("📋 Datos mes pasado:", this.productionDataLastMonth);
-
-      // Normaliza y valida
+      if (!this.productionData || !this.productionDataLastMonth) return;
       const normalizedData = this.normalizeData();
-      console.log("📊 Datos normalizados:", normalizedData);
-
-      // Valida que hay datos útiles para graficar
-      if (!normalizedData.totalVideos.current || !normalizedData.totalVideos.lastMonth) {
-        console.warn("⚠️ Datos normalizados insuficientes.");
-        return;
-      }
-
-      // Espera al DOM y renderiza
       this.$nextTick(() => {
         const canvas = document.getElementById("radarChart");
-        if (!canvas) {
-          console.error("❌ No se encontró el canvas.");
-          return;
-        }
-
+        if (!canvas) return;
         const ctx = canvas.getContext("2d");
-
-        if (this.chartInstance) {
-          this.chartInstance.destroy();
-        }
+        if (this.chartInstance) this.chartInstance.destroy();
 
         this.chartInstance = new Chart(ctx, {
           type: "radar",
           data: {
-            labels: ["Total Videos", "Videos Caídos", "Ganancia Total", "Ganancia Neta", "Coste Producción"],
+            labels: [
+              "Total Videos",
+              "Videos Caídos",
+              "Ganancia Total",
+              "Ganancia Neta",
+              "Coste Producción",
+            ],
             datasets: [
               {
                 label: "Este Mes",
@@ -426,6 +429,9 @@ export default {
           ? [...this.jrData].sort((a, b) => b.gananciaPromedio - a.gananciaPromedio)
           : [];
     },
+    useLastMonth() {
+      return this.isEmpleado && new Date().getDate() <= 4;
+    },
   },
 };
 </script>
@@ -491,12 +497,27 @@ h3 {
 }
 
 .production-table td:first-child {
-  width: 60%;
+  width: 70%;
+  padding-right: 500px;
 }
 
 .production-table td:last-child {
-  width: 40%;
+  width: 30%;
+  text-align: right;
 }
+
+/* Responsive: reduce separación en pantallas pequeñas */
+@media (max-width: 768px) {
+  .production-table td:first-child {
+    width: 60%;
+    padding-right: 10px;
+  }
+
+  .production-table td:last-child {
+    width: 40%;
+  }
+}
+
 
 .chart-container {
   margin-top: 10px;
@@ -763,7 +784,19 @@ canvas {
 
 }
 
+.full-width-card {
+  justify-content: center;
+}
+
+.full-width-card > .production-table {
+  min-width: 100%;
+  max-width: 100%;
+}
+
+.info-aviso {
+  color: #777;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
 </style>
-
-
-
