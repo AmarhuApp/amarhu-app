@@ -302,10 +302,6 @@ export default {
 };
 </script>
 
-
-
-
-
 <style scoped>
 .reports-table {
   display: block; /* 🔑 Para que respete el ancho y permita scroll */

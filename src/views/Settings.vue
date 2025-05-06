@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2>You are in Settings</h2>
+    <h2>You are in Trends</h2>
   </div>
 </template>
 
