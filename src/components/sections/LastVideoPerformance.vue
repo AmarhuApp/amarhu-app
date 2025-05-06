@@ -27,33 +27,34 @@
     <!-- Contenido de Resumen de Producción -->
     <div v-if="activeTab === 'produccion'">
       <h3>Resumen de Producción</h3>
-      <p v-if="isEmpleado && new Date().getDate() <= 4" class="info-aviso">
+      <p v-if="isEmpleado && useLastMonth" class="info-aviso">
         Mostrando datos del mes anterior (hasta el 4 de este mes)
       </p>
       <div :class="['horizontal-container', { 'full-width-card': isEmpleado }]">
-        <!-- Lógica diferenciada -->
-        <!-- Dentro del template -->
+
+        <!-- 👤 Empleados: datos personales -->
         <div v-if="isEmpleado">
-          <table
-              v-if="(useLastMonth ? productionDataLastMonth : productionData).totalVideos != null"
-              class="production-table"
-          >
+          <table v-if="!isLoadingProduction" class="production-table">
             <tbody>
             <tr>
               <td class="label">Total de Videos:</td>
-              <td class="value">{{ useLastMonth ? productionDataLastMonth.totalVideos : productionData.totalVideos }}</td>
+              <td class="value">
+                {{ useLastMonth ? productionDataLastMonth.videosTotales : productionData.videosTotales }}
+              </td>
             </tr>
             <tr>
               <td class="label">Videos Caídos:</td>
-              <td class="value">{{ useLastMonth ? productionDataLastMonth.videosCaidos : productionData.videosCaidos }}</td>
+              <td class="value">
+                {{ useLastMonth ? productionDataLastMonth.videosCaidos : productionData.videosCaidos }}
+              </td>
             </tr>
             <tr>
               <td class="label">Videos Productivos:</td>
               <td class="value">
                 {{
                   (useLastMonth
-                      ? productionDataLastMonth.totalVideos - productionDataLastMonth.videosCaidos
-                      : productionData.totalVideos - productionData.videosCaidos)
+                      ? productionDataLastMonth.videosTotales - productionDataLastMonth.videosCaidos
+                      : productionData.videosTotales - productionData.videosCaidos)
                 }}
               </td>
             </tr>
@@ -65,11 +66,13 @@
             </tr>
             </tbody>
           </table>
-          <p v-else>Cargando datos...</p>
+          <p v-else>Cargando datos personales...</p>
         </div>
 
+
+        <!-- 🧑‍💼 Directivos: datos globales -->
         <div v-else>
-          <table v-if="productionData && productionData.totalVideos != null" class="production-table">
+          <table v-if="productionData.totalVideos != null" class="production-table">
             <tbody>
             <tr>
               <td class="label">Total de Videos:</td>
@@ -105,9 +108,9 @@
             </tr>
             </tbody>
           </table>
-          <p v-else>Cargando datos...</p>
+          <p v-else>Cargando datos globales...</p>
 
-          <!-- Contenedor de la gráfica -->
+          <!-- Comparativa visual -->
           <div ref="chart" class="chart-container">
             <h3>Comparación de Producción</h3>
             <canvas id="radarChart"></canvas>
@@ -120,6 +123,7 @@
         </div>
       </div>
     </div>
+
 
     <!-- Contenido de Resumen JR's -->
     <div v-if="activeTab === 'jr'" class="ranking-container">
@@ -228,6 +232,7 @@ export default {
       redactores: [],
       chartInstance: null,
       baseURL: "https://api.pa-reporte.com",
+      isLoadingProduction: true, // ✅ nueva bandera
     };
   },
   async mounted() {
@@ -269,23 +274,24 @@ export default {
       }
     },
     async fetchPersonalProduction() {
+      this.isLoadingProduction = true;
       try {
-        const response = await axios.get(
-            `${this.baseURL}/api/personal-production/${this.userStore.user.id}`
-        );
+        const response = await axios.get(`${this.baseURL}/api/personal-production/${this.userStore.user.id}`);
         this.productionData = response.data;
       } catch (error) {
         console.error("Error al obtener datos de producción personal:", error.message);
+      } finally {
+        this.isLoadingProduction = false;
       }
     },
     async fetchPersonalProductionLastMonth() {
       try {
-        const response = await axios.get(
-            `${this.baseURL}/api/personal-production/last-month/${this.userStore.user.id}`
-        );
-        this.productionData = response.data;
+        const response = await axios.get(`${this.baseURL}/api/personal-production/last-month/${this.userStore.user.id}`);
+        this.productionDataLastMonth = response.data;
       } catch (error) {
         console.error("Error al obtener datos del mes pasado:", error.message);
+      } finally {
+        this.isLoadingProduction = false;
       }
     },
     async fetchProductionData() {

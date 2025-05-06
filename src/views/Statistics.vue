@@ -9,6 +9,7 @@
           <div class="tab-container">
             <button :class="{ active: activeTab === 'semana' }" @click="activeTab = 'semana'">Resumen semanal</button>
             <button :class="{ active: activeTab === 'mes' }" @click="activeTab = 'mes'">Resumen mensual</button>
+            <button v-if="showPreviousMonthTab" :class="{ active: activeTab === 'mesAnterior' }" @click="activeTab = 'mesAnterior'">Resumen mes pasado</button>
           </div>
 
           <div class="chart" v-if="activeTab === 'semana'">
@@ -25,13 +26,25 @@
 
           <div class="chart" v-if="activeTab === 'mes'">
             <canvas ref="monthlyChart"></canvas>
-            <div class="monthly-summary" v-if="activeTab === 'mes' && monthSummary">
-              <p>
+          </div>
+          <div class="monthly-summary" v-if="activeTab === 'mes' && monthSummary">
+            <p>
                 Total de videos producidos: {{ monthSummary.total }} |
                 Caídos: {{ monthSummary.caidos }} |
                 Comisión acumulada: {{ monthSummary.comision }} dólares USA
+            </p>
+            <p>{{ capitalize(monthSummary.mes) }}</p>
+          </div>
+
+          <div class="chart" v-if="activeTab === 'mesAnterior'">
+            <canvas ref="previousMonthChart"></canvas>
+            <div class="monthly-summary" v-if="monthSummaryLastMonth">
+              <p>
+                Total de videos producidos: {{ monthSummaryLastMonth.total }} |
+                Caídos: {{ monthSummaryLastMonth.caidos }} |
+                Comisión acumulada: {{ monthSummaryLastMonth.comision }} dólares USA
               </p>
-              <p>{{ capitalize(monthSummary.mes) }}</p>
+              <p>{{ capitalize(monthSummaryLastMonth.mes) }}</p>
             </div>
           </div>
         </div>
@@ -76,8 +89,6 @@
   </div>
 </template>
 
-
-
 <script>
 import Chart from "chart.js/auto";
 import axios from "axios";
@@ -91,9 +102,11 @@ export default {
   data() {
     return {
       monthSummary: null,
+      monthSummaryLastMonth: null,
       weekSummary: null,
       weeklyChartInstance: null,
       monthlyChartInstance: null,
+      previousMonthChartInstance: null,
       resumenProduccion: null,
       resumenProduccionMesPasado: null,
       videos: [],
@@ -110,6 +123,9 @@ export default {
     },
     isEmpleado() {
       return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userStore.user.role);
+    },
+    showPreviousMonthTab() {
+      return new Date().getDate() > 7;
     }
   },
   watch: {
@@ -118,11 +134,73 @@ export default {
         this.$nextTick(() => {
           if (newTab === 'semana') this.renderWeeklyChart();
           if (newTab === 'mes') this.renderMonthlyChart();
+          if (newTab === 'mesAnterior') this.renderPreviousMonthChart();
         });
       }
     }
   },
   methods: {
+    isCaido(video) {
+      const comision = parseFloat(video.comision) || 0;
+      return comision < 10;
+    },
+
+    renderPreviousMonthChart() {
+      if (this.previousMonthChartInstance) this.previousMonthChartInstance.destroy();
+
+      const today = new Date();
+      let monthToUse = today.getMonth() - 1;
+      let yearToUse = today.getFullYear();
+      if (monthToUse < 0) {
+        monthToUse = 11;
+        yearToUse -= 1;
+      }
+
+      const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
+      const monthlyAdjusted = Array(daysInMonth).fill(0);
+
+      let totalMes = 0;
+      let caidosMes = 0;
+      let comisionMes = 0;
+
+      this.videos.forEach((v) => {
+        const date = new Date(v.date);
+        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
+          const day = date.getDate() - 1;
+          monthlyAdjusted[day]++;
+          totalMes++;
+          const comision = parseFloat(v.comision) || 0;
+          if (this.isCaido(v)) caidosMes++;
+          comisionMes += comision;
+        }
+      });
+
+      const chartOptions = this.getChartOptions("Videos producidos por día del mes pasado", "Videos producidos");
+
+      this.previousMonthChartInstance = new Chart(this.$refs.previousMonthChart, {
+        type: "line",
+        data: {
+          labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
+          datasets: [{
+            label: "Videos por día",
+            data: monthlyAdjusted,
+            borderColor: "#e76f51",
+            backgroundColor: "rgba(231, 111, 81, 0.3)",
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: chartOptions
+      });
+
+      this.monthSummaryLastMonth = {
+        total: totalMes,
+        caidos: caidosMes,
+        comision: comisionMes.toFixed(2),
+        mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
+      };
+    },
+
     async fetchStatisticsData() {
       try {
         if (this.isEmpleado) {
@@ -153,9 +231,11 @@ export default {
         console.error("Error cargando estadísticas:", error);
       }
     },
+
     capitalize(text) {
       return text.charAt(0).toUpperCase() + text.slice(1);
     },
+
     getChartOptions(title, yLabel) {
       return {
         responsive: true,
@@ -177,6 +257,7 @@ export default {
         }
       };
     },
+
     renderWeeklyChart() {
       if (this.weeklyChartInstance) this.weeklyChartInstance.destroy();
 
@@ -198,8 +279,9 @@ export default {
         if (inThisWeek) {
           weekly[dayIndex]++;
           totalVideos++;
-          if (v.estado === "CAIDO") videosCaidos++;
-          comisionAcumulada += v.comision || 0;
+          const comision = parseFloat(v.comision) || 0;
+          if (this.isCaido(v)) videosCaidos++;
+          comisionAcumulada += comision;
         }
       });
 
@@ -228,13 +310,13 @@ export default {
         mes: new Date().toLocaleDateString("es-PE", { month: "long", year: "numeric" })
       };
     },
+
     renderMonthlyChart() {
       if (this.monthlyChartInstance) this.monthlyChartInstance.destroy();
 
       const today = new Date();
-      const useLastMonth = today.getDate() <= 7;
-      const monthToUse = useLastMonth ? today.getMonth() - 1 : today.getMonth();
-      const yearToUse = useLastMonth && today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
+      const monthToUse = today.getMonth();
+      const yearToUse = today.getFullYear();
       const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
       const monthlyAdjusted = Array(daysInMonth).fill(0);
 
@@ -244,18 +326,17 @@ export default {
 
       this.videos.forEach((v) => {
         const date = new Date(v.date);
-        const sameMonth = date.getMonth() === monthToUse && date.getFullYear() === yearToUse;
-
-        if (sameMonth) {
+        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
           const day = date.getDate() - 1;
           monthlyAdjusted[day]++;
           totalMes++;
-          if (v.estado === "CAIDO") caidosMes++;
-          comisionMes += v.comision || 0;
+          const comision = parseFloat(v.comision) || 0;
+          if (this.isCaido(v)) caidosMes++;
+          comisionMes += comision;
         }
       });
 
-      const chartOptions = this.getChartOptions(`Videos producidos por día de ${useLastMonth ? 'mes pasado' : 'este mes'}`, "Videos producidos");
+      const chartOptions = this.getChartOptions("Videos producidos por día de este mes", "Videos producidos");
 
       this.monthlyChartInstance = new Chart(this.$refs.monthlyChart, {
         type: "line",
@@ -280,8 +361,9 @@ export default {
         mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
       };
     },
+
     renderCharts() {
-      // directivos y roles similares (sin cambios)
+      // directivos y otros roles
     }
   },
   created() {
@@ -289,8 +371,6 @@ export default {
   }
 };
 </script>
-
-
 
 <style scoped>
 .statistics {
@@ -331,21 +411,6 @@ h2 {
   flex-wrap: wrap;
   gap: 20px;
   justify-content: space-between;
-}
-
-.chart {
-  flex: 1;
-  min-width: 320px;
-  max-width: 450px;
-  height: 350px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  padding: 15px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
 }
 
 .chart h3 {
@@ -442,17 +507,10 @@ h2 {
   border-radius: 10px;
 }
 
+.monthly-summary,
 .weekly-summary {
   text-align: center;
   font-size: 14px;
   color: #333333;
-  margin-top: 10px;
-}
-
-.monthly-summary {
-  text-align: center;
-  font-size: 14px;
-  color: #333333;
-  margin-top: 10px;
 }
 </style>
