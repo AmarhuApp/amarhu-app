@@ -7,9 +7,19 @@
         <!-- Contenido exclusivo para empleados -->
         <div v-if="isEmpleado">
           <div class="tab-container">
-            <button :class="{ active: activeTab === 'semana' }" @click="activeTab = 'semana'">Resumen semanal</button>
-            <button :class="{ active: activeTab === 'mes' }" @click="activeTab = 'mes'">Resumen mensual</button>
-            <button v-if="showPreviousMonthTab" :class="{ active: activeTab === 'mesAnterior' }" @click="activeTab = 'mesAnterior'">Resumen mes pasado</button>
+            <button :class="{ 'active-tab': activeTab === 'semana' }" @click="activeTab = 'semana'">
+              Resumen semanal
+            </button>
+            <button :class="{ 'active-tab': activeTab === 'mes' }" @click="activeTab = 'mes'">
+              Resumen mensual
+            </button>
+            <button
+                v-if="showPreviousMonthTab"
+                :class="{ 'active-tab': activeTab === 'mesAnterior' }"
+                @click="activeTab = 'mesAnterior'"
+            >
+              Resumen mes pasado
+            </button>
           </div>
 
           <div class="chart" v-if="activeTab === 'semana'">
@@ -38,14 +48,14 @@
 
           <div class="chart" v-if="activeTab === 'mesAnterior'">
             <canvas ref="previousMonthChart"></canvas>
-            <div class="monthly-summary" v-if="monthSummaryLastMonth">
-              <p>
+          </div>
+          <div class="monthly-summary" v-if="activeTab === 'mesAnterior' && monthSummaryLastMonth">
+            <p>
                 Total de videos producidos: {{ monthSummaryLastMonth.total }} |
                 Caídos: {{ monthSummaryLastMonth.caidos }} |
                 Comisión acumulada: {{ monthSummaryLastMonth.comision }} dólares USA
-              </p>
-              <p>{{ capitalize(monthSummaryLastMonth.mes) }}</p>
-            </div>
+            </p>
+            <p>{{ capitalize(monthSummaryLastMonth.mes) }}</p>
           </div>
         </div>
 
@@ -141,10 +151,9 @@ export default {
   },
   methods: {
     isCaido(video) {
-      const comision = parseFloat(video.comision) || 0;
-      return comision < 10;
+      const comision = typeof video.estimatedRevenue === 'number' ? video.estimatedRevenue : parseFloat(video.estimatedRevenue);
+      return comision < 1.66452;
     },
-
     renderPreviousMonthChart() {
       if (this.previousMonthChartInstance) this.previousMonthChartInstance.destroy();
 
@@ -169,9 +178,9 @@ export default {
           const day = date.getDate() - 1;
           monthlyAdjusted[day]++;
           totalMes++;
-          const comision = parseFloat(v.comision) || 0;
+          const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
           if (this.isCaido(v)) caidosMes++;
-          comisionMes += comision;
+          if (!this.isCaido(v)) comisionMes += comision;
         }
       });
 
@@ -193,12 +202,15 @@ export default {
         options: chartOptions
       });
 
-      this.monthSummaryLastMonth = {
-        total: totalMes,
-        caidos: caidosMes,
-        comision: comisionMes.toFixed(2),
-        mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
-      };
+      this.monthSummaryLastMonth = null;
+      this.$nextTick(() => {
+        this.monthSummaryLastMonth = {
+          total: totalMes,
+          caidos: caidosMes,
+          comision: comisionMes.toFixed(2),
+          mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
+        };
+      });
     },
 
     async fetchStatisticsData() {
@@ -261,10 +273,21 @@ export default {
     renderWeeklyChart() {
       if (this.weeklyChartInstance) this.weeklyChartInstance.destroy();
 
-      const daysLabels = ["L", "M", "M", "J", "V", "S", "D"];
+      const weekdayNames = ["D", "L", "M", "M", "J", "V", "S"];
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+      const daysLabels = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + i);
+        const weekday = weekdayNames[date.getDay()];
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${weekday}-${day}`;
+      });
+
       const weekly = Array(7).fill(0);
       const now = new Date();
-      const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
 
       let totalVideos = 0;
@@ -279,9 +302,9 @@ export default {
         if (inThisWeek) {
           weekly[dayIndex]++;
           totalVideos++;
-          const comision = parseFloat(v.comision) || 0;
+          const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
           if (this.isCaido(v)) videosCaidos++;
-          comisionAcumulada += comision;
+          if (!this.isCaido(v)) comisionAcumulada += comision;
         }
       });
 
@@ -303,12 +326,15 @@ export default {
         options: chartOptions
       });
 
-      this.weekSummary = {
-        total: totalVideos,
-        caidos: videosCaidos,
-        comision: comisionAcumulada.toFixed(2),
-        mes: new Date().toLocaleDateString("es-PE", { month: "long", year: "numeric" })
-      };
+      this.weekSummary = null;
+      this.$nextTick(() => {
+        this.weekSummary = {
+          total: totalVideos,
+          caidos: videosCaidos,
+          comision: comisionAcumulada.toFixed(2),
+          mes: new Date().toLocaleDateString("es-PE", { month: "long", year: "numeric" })
+        };
+      });
     },
 
     renderMonthlyChart() {
@@ -330,9 +356,9 @@ export default {
           const day = date.getDate() - 1;
           monthlyAdjusted[day]++;
           totalMes++;
-          const comision = parseFloat(v.comision) || 0;
+          const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
           if (this.isCaido(v)) caidosMes++;
-          comisionMes += comision;
+          if (!this.isCaido(v)) comisionMes += comision;
         }
       });
 
@@ -354,12 +380,16 @@ export default {
         options: chartOptions
       });
 
-      this.monthSummary = {
-        total: totalMes,
-        caidos: caidosMes,
-        comision: comisionMes.toFixed(2),
-        mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
-      };
+      this.monthSummary = null;
+      this.$nextTick(() => {
+        this.monthSummary = {
+          total: totalMes,
+          caidos: caidosMes,
+          comision: comisionMes.toFixed(2),
+          mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
+        };
+      });
+
     },
 
     renderCharts() {
@@ -513,4 +543,33 @@ h2 {
   font-size: 14px;
   color: #333333;
 }
+
+.tab-container {
+  display: flex;
+  justify-content: center; /* centrado horizontal */
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.tab-container button {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background-color: transparent;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-container button:hover {
+  color: #007bff;
+}
+
+.tab-container button.active-tab {
+  border-bottom: 2px solid #007bff;
+  color: #007bff;
+}
+
 </style>

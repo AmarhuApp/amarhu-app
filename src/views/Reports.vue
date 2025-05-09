@@ -29,107 +29,108 @@
       <span>Total: {{ filteredData.length }}</span>
     </div>
 
+
     <!-- Tabla -->
-    <table class="reports-table">
-      <thead>
-      <tr>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">#</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">ID</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Titulo</th>
-        <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Fecha</th>
-        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Views</th>
-        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Revenue Estimado</th>
-        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">WVD</th>
-        <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">RPM</th>
+    <div class="table-container" ref="tableContainer">
+      <table class="reports-table">
+        <thead>
+        <tr>
+          <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">#</th>
+          <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">ID</th>
+          <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Titulo</th>
+          <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Fecha</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Views</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Revenue Estimado</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">WVD</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">RPM</th>
 
-        <!-- Condicional para empleados -->
-        <template v-if="isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">
-          <th>Hora</th>
-          <th>Visualización</th>
-          <th>Ingresos Estimados</th>
-          <th>Monto Redactor</th>
-          <th>Tiempo de Vista (s)</th>
-          <th>RPM Real</th>
-          <th>Categoría</th>
-          <th>Color</th>
-        </template>
+          <!-- Condicional para empleados -->
+          <template v-if="isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">
+            <th>Hora</th>
+            <th>Visualización</th>
+            <th>Monto Redactor</th>
+            <th>Tiempo de Vista (s)</th>
+            <th>RPM Real</th>
+            <th>Categoría</th>
+            <th>Color</th>
+          </template>
 
-        <th v-if="currentFilter === 'pagos'">Código</th>
-        <th v-if="currentFilter === 'pagos'">Nombre</th>
-        <th v-if="currentFilter === 'pagos'">Videos Totales</th>
-        <th v-if="currentFilter === 'pagos'">Videos Caídos</th>
-        <th v-if="currentFilter === 'pagos'">Ganancia Total</th>
-        <th v-if="currentFilter === 'pagos'">Ganancia Total menos Impuestos</th>
-        <th v-if="currentFilter === 'pagos'">Ganancia después de Caídos e Impuestos</th>
-        <th v-if="currentFilter === 'pagos'">Comisión $</th>
-        <th v-if="currentFilter === 'pagos'">Comisión S/.</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr
-          v-for="(item, index) in filteredData"
-          :key="item.id"
-          v-if="currentFilter === 'videos' || currentFilter === 'caidos'"
-      >
-        <td>{{ index + 1 }}</td>
-        <td>{{ item.videoId }}</td>
-        <td>{{ item.title }}</td>
-        <td>{{ item.fechaPublicacion }}</td>
+          <th v-if="currentFilter === 'pagos'">Código</th>
+          <th v-if="currentFilter === 'pagos'">Nombre</th>
+          <th v-if="currentFilter === 'pagos'">Videos Totales</th>
+          <th v-if="currentFilter === 'pagos'">Videos Caídos</th>
+          <th v-if="currentFilter === 'pagos'">Ganancia Total</th>
+          <th v-if="currentFilter === 'pagos'">Ganancia Total menos Impuestos</th>
+          <th v-if="currentFilter === 'pagos'">Ganancia después de Caídos e Impuestos</th>
+          <th v-if="currentFilter === 'pagos'">Comisión $</th>
+          <th v-if="currentFilter === 'pagos'">Comisión S/.</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr
+            v-for="(item, index) in filteredData"
+            :key="item.id"
+            v-if="currentFilter === 'videos' || currentFilter === 'caidos'"
+        >
+          <td>{{ index + 1 }}</td>
+          <td>{{ item.videoId }}</td>
+          <td>{{ item.title }}</td>
+          <td>{{ item.fechaPublicacion }}</td>
 
-        <!-- Normal para directivos -->
-        <template v-if="!isEmpleado">
-          <td>{{ item.views }}</td>
-          <td>{{ item.estimatedRevenue }}</td>
-          <td>{{ item.averageViewDuration }}</td>
-          <td>{{ item.rpm }}</td>
-        </template>
+          <!-- Normal para directivos -->
+          <template v-if="!isEmpleado">
+            <td>{{ item.views }}</td>
+            <td>{{ item.estimatedRevenue }}</td>
+            <td>{{ item.averageViewDuration }}</td>
+            <td>{{ item.rpm }}</td>
+          </template>
 
-        <!-- Para empleados -->
-        <template v-else>
-          <td>{{ item.horaPublicacion }}</td>
-          <td>{{ item.views }}</td>
-          <td>{{ item.estimatedRevenue }}</td>
-          <td>
-              <span v-if="item.estimatedRevenue >= 10">
-                ${{ (item.estimatedRevenue * 0.166452).toFixed(2) }}
-              </span>
-            <span v-else>-</span>
-          </td>
-          <td>{{ item.averageViewDuration }}</td>
-          <td>{{ item.rpm || '-' }}</td>
-          <td>{{ item.categoria }}</td>
-          <td>
-            <div
-                :style="{
-              backgroundColor: item.colorCategoria,
-              width: '50px',
-              height: '20px',
-              borderRadius: '4px',
-              margin: 'auto'
-            }"
-            ></div>
+          <!-- Para empleados -->
+          <template v-else>
+            <td>{{ item.horaPublicacion }}</td>
+            <td>{{ item.views }}</td>
+            <td>
+                <span v-if="item.estimatedRevenue">
+                  ${{ (item.estimatedRevenue).toFixed(4) }}
+                </span>
+              <span v-else>-</span>
+            </td>
+            <td>{{ item.averageViewDuration }}</td>
+            <td>{{ item.rpm || '-' }}</td>
+            <td>{{ item.categoria }}</td>
+            <td>
+              <div
+                  :style="{
+                backgroundColor: item.colorCategoria,
+                width: '50px',
+                height: '20px',
+                borderRadius: '4px',
+                margin: 'auto'
+              }"
+              ></div>
 
-          </td>
-        </template>
-      </tr>
+            </td>
+          </template>
+        </tr>
 
-      <tr
-          v-for="(pago, index) in filteredData"
-          :key="pago.codigo"
-          v-if="currentFilter === 'pagos'"
-      >
-        <td>{{ pago.codigo }}</td>
-        <td>{{ pago.nombre }}</td>
-        <td>{{ pago.videosTotales }}</td>
-        <td>{{ pago.videosCaidos }}</td>
-        <td>{{ pago.gananciaTotal }}</td>
-        <td>{{ pago.gananciaMenosImpuestos }}</td>
-        <td>{{ pago.gananciaDespuesCaidos }}</td>
-        <td>{{ pago.comisionDolares }}</td>
-        <td>{{ pago.comisionSoles }}</td>
-      </tr>
-      </tbody>
-    </table>
+        <tr
+            v-for="(pago, index) in filteredData"
+            :key="pago.codigo"
+            v-if="currentFilter === 'pagos'"
+        >
+          <td>{{ pago.codigo }}</td>
+          <td>{{ pago.nombre }}</td>
+          <td>{{ pago.videosTotales }}</td>
+          <td>{{ pago.videosCaidos }}</td>
+          <td>{{ pago.gananciaTotal }}</td>
+          <td>{{ pago.gananciaMenosImpuestos }}</td>
+          <td>{{ pago.gananciaDespuesCaidos }}</td>
+          <td>{{ pago.comisionDolares }}</td>
+          <td>{{ pago.comisionSoles }}</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -181,24 +182,27 @@ export default {
 
           let categoria = "Sin Clasificación";
           let colorCategoria = "#BDC3C7"; // Gris por defecto
-          const rpm = item.rpm ? parseFloat(item.rpm.toFixed(2)) : 0;
+          const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+          const rpm = parseFloat((rawRpm * 0.9).toFixed(2)); // Aplica reducción del 10%
 
-          if (rpm < 1.06) {
+
+          if (rpm < 0.95) {
             categoria = "Extremadamente Bajo";
             colorCategoria = "#C0392B";
-          } else if (rpm <= 1.57) {
+          } else if (rpm <= 1.41) {
             categoria = "Bajo Impacto";
             colorCategoria = "#E74C3C";
-          } else if (rpm <= 2.13) {
+          } else if (rpm <= 1.92) {
             categoria = "Buen Impacto";
             colorCategoria = "#F1C40F";
-          } else if (rpm <= 2.68) {
+          } else if (rpm <= 2.41) {
             categoria = "Alto Impacto";
             colorCategoria = "#3498DB";
-          } else if (rpm >= 2.71) {
+          } else if (rpm > 2.41) {
             categoria = "Impacto Sobresaliente";
             colorCategoria = "#27AE60";
           }
+
           const fechaOriginal = new Date(item.date);
           const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
           const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
@@ -303,11 +307,6 @@ export default {
 </script>
 
 <style scoped>
-.reports-table {
-  display: block; /* 🔑 Para que respete el ancho y permita scroll */
-  overflow-x: auto; /* 💡 Permite scroll horizontal solo si es necesario */
-  white-space: nowrap; /* 🔥 Evita que las celdas se rompan en varias líneas */
-}
 
 .reports {
   padding: 20px;
@@ -415,17 +414,22 @@ h1 {
   color: #555;
 }
 
+.table-container {
+  overflow-x: auto;
+  white-space: nowrap;
+  margin-top: 10px;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Opcional: evita doble scroll innecesario */
 .reports-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  display: block; /* 🔑 Para que respete el ancho y permita scroll */
-  overflow-x: auto; /* 💡 Permite scroll horizontal solo si es necesario */
-  white-space: nowrap;
+  min-width: 1000px; /* O ajusta según tus columnas */
 }
+
 
 .reports-table th,
 .reports-table td {
@@ -449,10 +453,22 @@ h1 {
   background-color: #f9f9f9;
 }
 
-.thumbnail {
-  width: 130px;
-  height: auto;
-  border-radius: 10px;
+.table-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 555px; /* o lo que desees */
+  position: relative;
 }
+
+.reports-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f5f5f5; /* Para que no se mezcle con el fondo al hacer scroll */
+  z-index: 2; /* Asegura que esté por encima del contenido */
+  font-size: 16px;
+  font-weight: 600;
+  color: #555;
+}
+
 </style>
 
