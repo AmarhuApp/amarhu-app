@@ -276,10 +276,39 @@ export default {
     async fetchPersonalProduction() {
       this.isLoadingProduction = true;
       try {
-        const response = await axios.get(`${this.baseURL}/api/personal-production/${this.userStore.user.id}`);
-        this.productionData = response.data;
+        const response = await axios.get(`${this.baseURL}/api/personal-videos/${this.userStore.user.id}`);
+        const videos = response.data;
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        let total = 0;
+        let caidos = 0;
+        let comision = 0;
+
+        videos.forEach((v) => {
+          const date = new Date(v.date);
+          const isSameMonth = date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+          if (isSameMonth) {
+            total++;
+            const revenue = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
+            if (revenue < 1.66452) {
+              caidos++;
+            } else {
+              comision += revenue;
+            }
+          }
+        });
+
+        this.productionData = {
+          user: this.userStore.user,
+          videosTotales: total,
+          videosCaidos: caidos,
+          comisionDolares: comision,
+        };
       } catch (error) {
-        console.error("Error al obtener datos de producción personal:", error.message);
+        console.error("❌ Error al obtener y calcular producción personal:", error.message);
       } finally {
         this.isLoadingProduction = false;
       }
@@ -638,6 +667,7 @@ h3 {
   background-color: transparent;
   color: #333;
   cursor: pointer;
+  border-radius: 5px;
   transition: all 0.3s ease;
 }
 
