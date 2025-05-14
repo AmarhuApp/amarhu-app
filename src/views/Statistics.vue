@@ -135,7 +135,7 @@ export default {
       return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userStore.user.role);
     },
     showPreviousMonthTab() {
-      return new Date().getDate() > 7;
+      return new Date().getDate() <= 7;
     }
   },
   watch: {
