@@ -33,6 +33,7 @@
 
 <script>
 import { useUserStore } from '@/store/user';
+import defaultAvatar from '@/assets/avatar-2.png';
 
 export default {
   name: "Header",
@@ -50,7 +51,9 @@ export default {
       return this.userStore.user || {};
     },
     userAvatar() {
-      return this.user.avatar || "/assets/default-avatar.png";
+      return this.user.avatar && this.user.avatar.trim() !== ""
+          ? this.user.avatar
+          : defaultAvatar;
     },
     roleDisplay() {
       switch (this.user.role) {
@@ -150,8 +153,8 @@ export default {
 }
 
 .user-icon {
-  width: 40px;
-  height: 40px;
+  width: 55px;
+  height: 55px;
   border-radius: 50%;
   cursor: pointer;
   object-fit: cover;

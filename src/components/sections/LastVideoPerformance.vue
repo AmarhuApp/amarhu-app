@@ -2,11 +2,30 @@
   <div class="video-performance">
     <!-- Navegación de pestañas -->
     <div class="tab-container">
+      <!-- Día 1-2: solo mes pasado -->
       <button
+          v-if="showOnlyLastMonthTab"
+          :class="{ 'active-tab': activeTab === 'mesPasado' }"
+          @click="activeTab = 'mesPasado'"
+      >
+        Resumen mes pasado
+      </button>
+
+      <!-- Día 3-7: ambos -->
+      <button
+          v-if="showBothTabs || showOnlyCurrentMonthTab"
           :class="{ 'active-tab': activeTab === 'produccion' }"
           @click="activeTab = 'produccion'"
       >
-        Resumen de Producción
+        Resumen actual
+      </button>
+
+      <button
+          v-if="showBothTabs"
+          :class="{ 'active-tab': activeTab === 'mesPasado' }"
+          @click="activeTab = 'mesPasado'"
+      >
+        Resumen mes pasado
       </button>
       <button
           v-if="isDirectivo || isJefePrensa"
@@ -465,8 +484,20 @@ export default {
           : [];
     },
     useLastMonth() {
-      return this.isEmpleado && new Date().getDate() <= 4;
+      return this.isEmpleado && new Date().getDate() <= 7;
     },
+    showOnlyLastMonthTab() {
+      const day = new Date().getDate();
+      return this.isEmpleado && day <= 2;
+    },
+    showBothTabs() {
+      const day = new Date().getDate();
+      return this.isEmpleado && day >= 3 && day <= 7;
+    },
+    showOnlyCurrentMonthTab() {
+      const day = new Date().getDate();
+      return this.isEmpleado && day >= 8;
+    }
   },
 };
 </script>

@@ -77,20 +77,30 @@ export default {
     };
   },
   methods: {
+    isWithinLast7Days(dateStr) {
+      const today = new Date();
+      const videoDate = new Date(dateStr);
+      const diffTime = today - videoDate;
+      const diffDays = diffTime / (1000 * 60 * 60 * 24);
+      return diffDays >= 0 && diffDays <= 6; // Incluye hoy y los 6 días previos
+    },
     async fetchVideos() {
       try {
         const { data } = await axios.get(`${this.baseURL}/api/videos`);
         this.allVideos = data;
 
-        this.topRpmVideos = [...data]
+        const recentVideos = data.filter(v => this.isWithinLast7Days(v.date));
+
+        this.topRpmVideos = [...recentVideos]
             .filter(v => v.rpm != null)
             .sort((a, b) => b.rpm - a.rpm)
             .slice(0, 15);
 
-        this.topViewVideos = [...data]
+        this.topViewVideos = [...recentVideos]
             .filter(v => v.views != null)
             .sort((a, b) => b.views - a.views)
             .slice(0, 15);
+
       } catch (error) {
         console.error('Error cargando videos:', error);
       }

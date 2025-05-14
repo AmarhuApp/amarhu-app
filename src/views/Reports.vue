@@ -172,10 +172,35 @@ export default {
     }
   },
   methods: {
+    filterByDateRange(videos) {
+      const today = new Date();
+      const day = today.getDate();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      return videos.filter((video) => {
+        const date = new Date(video.date);
+        const videoMonth = date.getMonth();
+        const videoYear = date.getFullYear();
+
+        if (day <= 7) {
+          // Mostrar videos del mes actual y anterior
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+          return (
+              (videoMonth === currentMonth && videoYear === currentYear) ||
+              (videoMonth === lastMonth && videoYear === lastMonthYear)
+          );
+        } else {
+          // Mostrar solo videos del mes actual
+          return videoMonth === currentMonth && videoYear === currentYear;
+        }
+      });
+    },
     async fetchPersonalVideos() {
       try {
         const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${this.userStore.user.id}`);
-        this.videos = response.data.map((item) => {
+        this.videos = this.filterByDateRange(response.data).map((item) => {
           const montoEmpleado = (item.estimatedRevenue >= 10)
               ? item.estimatedRevenue * 0.166452
               : 0;
@@ -232,7 +257,7 @@ export default {
     async fetchVideos() {
       try {
         const response = await axios.get("https://api.pa-reporte.com/api/videos");
-        this.videos = response.data.map(item => {
+        this.videos = this.filterByDateRange(response.data).map(item => {
           const fechaOriginal = new Date(item.date);
           const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
           return {
@@ -250,7 +275,7 @@ export default {
     async fetchCaidos() {
       try {
         const response = await axios.get("https://api.pa-reporte.com/api/caidos");
-        this.caidos = response.data;
+        this.caidos = this.filterByDateRange(response.data);
         if (this.currentFilter === "caidos") {
           this.filteredData = this.caidos;
         }
