@@ -8,7 +8,8 @@
       <div v-if="showFilterMenu" class="filter-menu">
         <button @click="setFilter('videos')">Videos</button>
         <button @click="setFilter('caidos')">Videos Caídos</button>
-        <button v-if="!isEmpleado" @click="setFilter('pagos')">Leyenda de Pagos</button>
+        <button v-if="!isEmpleado || isDirectivo" @click="setFilter('pagos')">Leyenda de Pagos</button>
+        <button v-if="isJefeRedaccion" @click="setFilter('redactores')">Redactores</button>
       </div>
 
       <div class="search-container">
@@ -131,10 +132,72 @@
         </tbody>
       </table>
     </div>
+    <!-- Pestañas de Redactores (solo si filtro 'redactores' activo) -->
+    <div v-if="currentFilter === 'redactores'" class="redactor-tabs">
+
+      <!-- Pestañas con nombre de cada redactor -->
+      <div class="tab-container">
+        <button
+            v-for="(redactor, index) in redactoresDetalles"
+            :key="redactor.codigo"
+            :class="{ 'active-tab': activeRedactorTab === redactor.codigo }"
+            @click="activeRedactorTab = redactor.codigo"
+        >
+          {{ redactor.nombre }}
+        </button>
+      </div>
+
+      <!-- Tabla de videos del redactor activo -->
+      <div v-if="redactorActivoDetalle" class="table-container">
+        <table class="reports-table">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Visualización</th>
+            <th>Monto Redactor</th>
+            <th>Tiempo de Vista (s)</th>
+            <th>RPM Real</th>
+            <th>Categoría</th>
+            <th>Color</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr
+              v-for="(item, index) in redactorActivoDetalle.videosProcesados"
+              :key="item.videoId"
+          >
+            <td>{{ index + 1 }}</td>
+            <td>{{ item.videoId }}</td>
+            <td>{{ item.title }}</td>
+            <td>{{ item.fechaPublicacion }}</td>
+            <td>{{ item.horaPublicacion }}</td>
+            <td>{{ item.views }}</td>
+            <td>${{ item.montoEmpleado.toFixed(4) }}</td>
+            <td>{{ item.averageViewDuration }}</td>
+            <td>{{ item.rpm }}</td>
+            <td>{{ item.categoria }}</td>
+            <td>
+              <div
+                  :style="{
+                backgroundColor: item.colorCategoria,
+                width: '50px',
+                height: '20px',
+                borderRadius: '4px',
+                margin: 'auto'
+              }"
+              ></div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
-
-
 
 <script>
 import axios from "axios";
@@ -144,6 +207,8 @@ export default {
   name: "Reports",
   data() {
     return {
+      activeRedactorTab: null,
+      redactoresDetalles: [],
       videos: [],
       caidos: [],
       pagos: [],
@@ -155,20 +220,57 @@ export default {
     };
   },
   computed: {
+    redactorActivoDetalle() {
+      return this.redactoresDetalles.find(r => r.codigo === this.activeRedactorTab) || null;
+    },
     userStore() {
       return useUserStore();
     },
+    isDirectivo() {
+      return this.userStore.user.role === "DIRECTIVO";
+    },
     isEmpleado() {
-      return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userStore.user.role);
+      return [
+        "REDACTOR",
+        "LOCUTOR",
+        "EDITOR",
+        "PANELISTA",
+        "JEFE_REDACCION",
+        "JEFE_ENTREVISTAS",
+        "JEFE_PRENSA"
+      ].includes(this.userStore.user.role);
+    },
+    isJefeRedaccion() {
+      return this.userStore.user.role === "JEFE_REDACCION";
+    },
+    codigoGrupoJefe() {
+      if (this.isJefeRedaccion && this.userStore.user.codigo) {
+        // Si el jefe es JR5 → devuelve "RA5"
+        const match = this.userStore.user.codigo.match(/^JR(\d+)/);
+        if (match) {
+          return `RA${match[1]}`;
+        }
+      }
+      return null;
+    },
+    redactoresFiltradosPagos() {
+      if (this.codigoGrupoJefe && this.pagos.length > 0) {
+        return this.pagos.filter(p => p.codigo.startsWith(this.codigoGrupoJefe));
+      }
+      return [];
     },
   },
   created() {
+    console.log("🔍 userStore.user:", this.userStore.user);
+
     if (this.isEmpleado) {
       this.fetchPersonalVideos();
-    } else {
+    } else if (this.isDirectivo) {
       this.fetchVideos();
       this.fetchCaidos();
       this.fetchPagos();
+    } else {
+      console.warn("⚠️ Role no manejado:", this.userStore.user.role);
     }
   },
   methods: {
@@ -196,6 +298,153 @@ export default {
           return videoMonth === currentMonth && videoYear === currentYear;
         }
       });
+    },
+    async fetchDetallesRedactores() {
+      this.redactoresDetalles = [];
+
+      for (const redactor of this.redactoresFiltradosPagos) {
+        try {
+          const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos-codigo/${redactor.codigo}`);
+
+          const videosProcesados = this.filterByDateRange(response.data).map((item) => {
+            const montoEmpleado = (item.estimatedRevenue >= 10)
+                ? item.estimatedRevenue * 0.166452
+                : 0;
+
+            let categoria = "Sin Clasificación";
+            let colorCategoria = "#BDC3C7";
+            const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+            const rpm = parseFloat((rawRpm * 0.9).toFixed(2));
+
+            if (rpm < 0.95) {
+              categoria = "Extremadamente Bajo";
+              colorCategoria = "#C0392B";
+            } else if (rpm <= 1.41) {
+              categoria = "Bajo Impacto";
+              colorCategoria = "#E74C3C";
+            } else if (rpm <= 1.92) {
+              categoria = "Buen Impacto";
+              colorCategoria = "#F1C40F";
+            } else if (rpm <= 2.41) {
+              categoria = "Alto Impacto";
+              colorCategoria = "#3498DB";
+            } else if (rpm > 2.41) {
+              categoria = "Impacto Sobresaliente";
+              colorCategoria = "#27AE60";
+            }
+
+            const fechaOriginal = new Date(item.date);
+            const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+            const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+
+            return {
+              ...item,
+              montoEmpleado,
+              categoria,
+              colorCategoria,
+              fechaPublicacion,
+              horaPublicacion,
+              rpm,
+            };
+          });
+
+          this.redactoresDetalles.push({
+            codigo: redactor.codigo,
+            nombre: redactor.nombre,
+            videosProcesados
+          });
+
+        } catch (error) {
+          console.error(`Error al obtener videos de ${redactor.nombre}:`, error);
+        }
+      }
+    },
+    async fetchRedactoresGrupo() {
+      this.redactoresDetalles = [];
+
+      try {
+        const response = await axios.get("https://api.pa-reporte.com/api/user");
+
+        // Filtramos los redactores del grupo del jefe actual
+        const redactoresGrupo = response.data.filter(user =>
+            user.role === "REDACTOR" &&
+            user.codigo &&
+            this.codigoGrupoJefe &&
+            user.codigo.startsWith(this.codigoGrupoJefe)
+        );
+
+        console.log("✅ Redactores del grupo encontrados:", redactoresGrupo);
+
+        // Por cada redactor, traemos sus videos
+        for (const redactor of redactoresGrupo) {
+          try {
+            const resVideos = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${redactor.id}`);
+
+            const videosProcesados = this.filterByDateRange(resVideos.data).map((item) => {
+              const montoEmpleado = (item.estimatedRevenue >= 10)
+                  ? item.estimatedRevenue * 0.166452
+                  : 0;
+
+              let categoria = "Sin Clasificación";
+              let colorCategoria = "#BDC3C7";
+              const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+              const rpm = parseFloat((rawRpm * 0.9).toFixed(2));
+
+              if (rpm < 0.95) {
+                categoria = "Extremadamente Bajo";
+                colorCategoria = "#C0392B";
+              } else if (rpm <= 1.41) {
+                categoria = "Bajo Impacto";
+                colorCategoria = "#E74C3C";
+              } else if (rpm <= 1.92) {
+                categoria = "Buen Impacto";
+                colorCategoria = "#F1C40F";
+              } else if (rpm <= 2.41) {
+                categoria = "Alto Impacto";
+                colorCategoria = "#3498DB";
+              } else if (rpm > 2.41) {
+                categoria = "Impacto Sobresaliente";
+                colorCategoria = "#27AE60";
+              }
+
+              const fechaOriginal = new Date(item.date);
+              const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+              const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
+
+              return {
+                ...item,
+                montoEmpleado,
+                categoria,
+                colorCategoria,
+                fechaPublicacion,
+                horaPublicacion,
+                rpm,
+              };
+            });
+
+            // Añadimos al arreglo de redactoresDetalles
+            this.redactoresDetalles.push({
+              codigo: redactor.codigo,
+              nombre: redactor.name,  // Cuidado: algunos APIs usan "name", otros "nombre"
+              videosProcesados
+            });
+
+          } catch (error) {
+            console.error(`Error al obtener videos de ${redactor.name}:`, error);
+          }
+        }
+
+      } catch (error) {
+        console.error("Error al obtener usuarios:", error);
+      }
     },
     async fetchPersonalVideos() {
       try {
@@ -296,15 +545,21 @@ export default {
     },
     setFilter(filter) {
       this.currentFilter = filter;
+
       if (filter === "videos") {
         this.filteredData = this.videos;
       } else if (filter === "caidos") {
         this.filteredData = this.caidos;
       } else if (filter === "pagos") {
-        this.filteredData = this.pagos;
+        this.fetchPagos();
+      } else if (filter === "redactores") {
+        // 🔥 Aquí ya NO necesitas esperar "pagos", porque se basa en /api/users
+        this.fetchRedactoresGrupo();
       }
+
       this.showFilterMenu = false;
     },
+
     filterData() {
       const query = this.searchQuery.toLowerCase();
       if (this.currentFilter === "videos" || this.currentFilter === "caidos") {
@@ -493,6 +748,37 @@ h1 {
   font-size: 16px;
   font-weight: 600;
   color: #555;
+}
+
+/* NUEVO: Estilos para pestañas */
+
+.tab-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.tab-container button {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background-color: transparent;
+  color: #333;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+}
+
+.tab-container button:hover {
+  color: #007bff;
+}
+
+.tab-container button.active-tab {
+  border-bottom: 2px solid #007bff; /* Subraya solo la pestaña activa */
+  color: #007bff;
 }
 
 </style>

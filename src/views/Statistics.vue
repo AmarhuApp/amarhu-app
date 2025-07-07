@@ -4,8 +4,8 @@
       <div class="main-content">
         <h1>Estadísticas</h1>
 
-        <!-- Contenido exclusivo para empleados -->
-        <div v-if="isEmpleado">
+        <!-- Bloque 1: Resumen semanal/mensual para empleados Y DIRECTIVOS -->
+        <div v-if="isEmpleado || isDirectivo">
           <div class="tab-container">
             <button :class="{ 'active-tab': activeTab === 'semana' }" @click="activeTab = 'semana'">
               Resumen semanal
@@ -13,17 +13,16 @@
             <button :class="{ 'active-tab': activeTab === 'mes' }" @click="activeTab = 'mes'">
               Resumen mensual
             </button>
-            <button
-                v-if="showPreviousMonthTab"
-                :class="{ 'active-tab': activeTab === 'mesAnterior' }"
-                @click="activeTab = 'mesAnterior'"
-            >
+            <button :class="{ 'active-tab': activeTab === 'mesAnterior' }"
+                    @click="activeTab = 'mesAnterior'"
+                    :disabled="!showPreviousMonthTab">
               Resumen mes pasado
             </button>
           </div>
 
+          <!-- Gráficas -->
           <div class="chart" v-if="activeTab === 'semana'">
-            <canvas ref="weeklyChart"></canvas>
+            <canvas :key="activeTab" ref="weeklyChart"></canvas>
           </div>
           <div class="weekly-summary" v-if="activeTab === 'semana' && weekSummary">
             <p>
@@ -35,61 +34,86 @@
           </div>
 
           <div class="chart" v-if="activeTab === 'mes'">
-            <canvas ref="monthlyChart"></canvas>
+            <canvas :key="activeTab" ref="monthlyChart"></canvas>
           </div>
           <div class="monthly-summary" v-if="activeTab === 'mes' && monthSummary">
             <p>
-                Total de videos producidos: {{ monthSummary.total }} |
-                Caídos: {{ monthSummary.caidos }} |
-                Comisión acumulada: {{ monthSummary.comision }} dólares USA
+              Total de videos producidos: {{ monthSummary.total }} |
+              Caídos: {{ monthSummary.caidos }} |
+              Comisión acumulada: {{ monthSummary.comision }} dólares USA
             </p>
             <p>{{ capitalize(monthSummary.mes) }}</p>
           </div>
 
           <div class="chart" v-if="activeTab === 'mesAnterior'">
-            <canvas ref="previousMonthChart"></canvas>
+            <canvas :key="activeTab" ref="previousMonthChart"></canvas>
           </div>
           <div class="monthly-summary" v-if="activeTab === 'mesAnterior' && monthSummaryLastMonth">
             <p>
-                Total de videos producidos: {{ monthSummaryLastMonth.total }} |
-                Caídos: {{ monthSummaryLastMonth.caidos }} |
-                Comisión acumulada: {{ monthSummaryLastMonth.comision }} dólares USA
+              Total de videos producidos: {{ monthSummaryLastMonth.total }} |
+              Caídos: {{ monthSummaryLastMonth.caidos }} |
+              Comisión acumulada: {{ monthSummaryLastMonth.comision }} dólares USA
             </p>
             <p>{{ capitalize(monthSummaryLastMonth.mes) }}</p>
           </div>
         </div>
 
-        <!-- Contenido para directivos y otros roles -->
-        <div v-else>
-          <div class="charts">
-            <div class="chart" id="chart1">
-              <canvas ref="chart1"></canvas>
+
+        <!-- Bloque 2: Charts + Top + botón (para NO empleados O JEFE_REDACCION) -->
+        <div v-if="!isEmpleado || isJefeRedaccion">
+
+          <!-- SOLO para DIRECTIVO -->
+          <div v-if="isDirectivo">
+            <div style="margin: 20px 0; text-align: center;">
+              <button class="filter-button" @click="fetchJefesRedaccion">
+                Ver Estadísticas de Jefes de Redacción
+              </button>
             </div>
-            <div class="chart" id="chart2">
-              <canvas ref="chart2"></canvas>
+
+            <!-- Pestañas de Jefes de Redacción -->
+            <div v-if="jefesRedaccionDetalles.length > 0" class="tab-container">
+              <button
+                  v-for="jefe in jefesRedaccionDetalles"
+                  :key="jefe.codigo"
+                  :class="{ 'active-tab': activeJefeTab === jefe.codigo }"
+                  @click="activeJefeTab = jefe.codigo"
+              >
+                {{ jefe.nombre }}
+              </button>
             </div>
-            <div class="chart" id="chart3">
-              <canvas ref="chart3"></canvas>
+
+            <!-- Gráfica mensual del jefe activo -->
+            <div v-if="jefeActivoDetalle" class="chart">
+              <canvas ref="jefeMonthlyChart"></canvas>
             </div>
           </div>
 
-          <h2>Top de Producción de Redactores</h2>
-          <table class="top-producers-table">
-            <thead>
-            <tr>
-              <th>#</th>
-              <th>Nombre</th>
-              <th>Videos Producidos</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="(producer, index) in topProducers" :key="producer.id">
-              <td class="rank">{{ index + 1 }}</td>
-              <td class="name">{{ producer.name }}</td>
-              <td class="video-count">{{ producer.videoCount }}</td>
-            </tr>
-            </tbody>
-          </table>
+          <!-- SOLO para JEFE_REDACCION -->
+          <div v-if="isJefeRedaccion">
+            <!-- Botón para ver estadísticas individuales -->
+            <div style="margin: 20px 0; text-align: center;">
+              <button class="filter-button" @click="fetchRedactoresGrupo">
+                Ver Estadísticas de mis Redactores
+              </button>
+            </div>
+
+            <!-- Pestañas solo si hay redactores -->
+            <div v-if="redactoresDetalles.length > 0" class="tab-container">
+              <button
+                  v-for="redactor in redactoresDetalles"
+                  :key="redactor.codigo"
+                  :class="{ 'active-tab': activeRedactorTab === redactor.codigo }"
+                  @click="activeRedactorTab = redactor.codigo"
+              >
+                {{ redactor.nombre }}
+              </button>
+            </div>
+
+            <!-- Gráfica mensual del redactor activo -->
+            <div v-if="redactorActivoDetalle" class="chart">
+              <canvas ref="redactorMonthlyChart"></canvas>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -98,6 +122,7 @@
     </div>
   </div>
 </template>
+
 
 <script>
 import Chart from "chart.js/auto";
@@ -111,6 +136,12 @@ export default {
   name: "Statistics",
   data() {
     return {
+      jefesRedaccionDetalles: [],
+      activeJefeTab: null,
+      jefeMonthlyChartInstance: null,
+      redactoresDetalles: [],
+      activeRedactorTab: null,
+      redactorMonthlyChartInstance: null,
       monthSummary: null,
       monthSummaryLastMonth: null,
       weekSummary: null,
@@ -123,28 +154,82 @@ export default {
       topProducers: [],
       userStore: useUserStore(),
       activeTab: "semana",
-      baseURL: "https://api.pa-reporte.com"
+      baseURL: "https://api.pa-reporte.com",
+      maxVideosPorDiaPersonalizado: 12
     };
   },
   computed: {
+    codigoGrupoJefe() {
+      if (this.userStore.user.role === "JEFE_REDACCION" && this.userStore.user.codigo) {
+        const match = this.userStore.user.codigo.match(/^JR(\d+)/);
+        if (match) {
+          return `RA${match[1]}`;
+        }
+      }
+      return null;
+    },
+    isJefeRedaccion() {
+      return this.userStore.user.role === "JEFE_REDACCION";
+    },
+    isDirectivo() {
+      return this.userStore.user.role === "DIRECTIVO";
+    },
+    redactorActivoDetalle() {
+      return this.redactoresDetalles.find(r => r.codigo === this.activeRedactorTab) || null;
+    },
+    jefeActivoDetalle() {
+      return this.jefesRedaccionDetalles.find(j => j.codigo === this.activeJefeTab) || null;
+    },
     isNewsFeedVisible() {
       const route = useRoute();
       return route.path !== "/reports" && route.path !== "/statistics";
     },
     isEmpleado() {
-      return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userStore.user.role);
+      return [
+        "REDACTOR",
+        "LOCUTOR",
+        "EDITOR",
+        "PANELISTA",
+        "JEFE_REDACCION",
+        "JEFE_ENTREVISTAS",
+        "JEFE_PRENSA"
+      ].includes(this.userStore.user.role);
     },
     showPreviousMonthTab() {
+      // Mostrar la pestaña solo hasta el día 7 del mes actual
       return new Date().getDate() <= 7;
     }
   },
   watch: {
+    '$route.path'(newVal) {
+      if (newVal === '/statistics') {
+        this.$nextTick(() => {
+          if (this.activeTab === 'semana') this.renderWeeklyChart();
+          if (this.activeTab === 'mes') this.renderMonthlyChart();
+          if (this.activeTab === 'mesAnterior') this.renderPreviousMonthChart();
+        });
+      }
+    },
     activeTab(newTab) {
-      if (this.isEmpleado) {
+      if (this.isEmpleado || this.isDirectivo) {  // 👈 agregas isDirectivo
         this.$nextTick(() => {
           if (newTab === 'semana') this.renderWeeklyChart();
           if (newTab === 'mes') this.renderMonthlyChart();
           if (newTab === 'mesAnterior') this.renderPreviousMonthChart();
+        });
+      }
+    },
+    activeJefeTab(newTab) {
+      if (this.jefeActivoDetalle) {
+        this.$nextTick(() => {
+          this.renderJefeMonthlyChart();
+        });
+      }
+    },
+    activeRedactorTab(newTab) {
+      if (this.redactorActivoDetalle) {
+        this.$nextTick(() => {
+          this.renderRedactorMonthlyChart();
         });
       }
     }
@@ -153,6 +238,80 @@ export default {
     isCaido(video) {
       const comision = typeof video.estimatedRevenue === 'number' ? video.estimatedRevenue : parseFloat(video.estimatedRevenue);
       return comision < 1.66452;
+    },
+    renderJefeMonthlyChart() {
+      if (this.jefeMonthlyChartInstance) this.jefeMonthlyChartInstance.destroy();
+
+      const today = new Date();
+      const monthToUse = today.getMonth();
+      const yearToUse = today.getFullYear();
+      const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
+      const monthlyAdjusted = Array(daysInMonth).fill(0);
+
+      const videos = this.jefeActivoDetalle ? this.jefeActivoDetalle.videosProcesados : [];
+
+      videos.forEach((v) => {
+        const date = new Date(v.date);
+        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
+          const day = date.getDate() - 1;
+          monthlyAdjusted[day]++;
+        }
+      });
+
+      const chartOptions = this.getChartOptions("Videos producidos por día (Jefe de Redacción)", "Videos producidos");
+
+      this.jefeMonthlyChartInstance = new Chart(this.$refs.jefeMonthlyChart, {
+        type: "line",
+        data: {
+          labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
+          datasets: [{
+            label: "Videos por día",
+            data: monthlyAdjusted,
+            borderColor: "#6a1b9a",
+            backgroundColor: "rgba(106, 27, 154, 0.3)",
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: chartOptions
+      });
+    },
+    renderRedactorMonthlyChart() {
+      if (this.redactorMonthlyChartInstance) this.redactorMonthlyChartInstance.destroy();
+
+      const today = new Date();
+      const monthToUse = today.getMonth();
+      const yearToUse = today.getFullYear();
+      const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
+      const monthlyAdjusted = Array(daysInMonth).fill(0);
+
+      const videos = this.redactorActivoDetalle ? this.redactorActivoDetalle.videosProcesados : [];
+
+      videos.forEach((v) => {
+        const date = new Date(v.date);
+        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
+          const day = date.getDate() - 1;
+          monthlyAdjusted[day]++;
+        }
+      });
+
+      const chartOptions = this.getChartOptions("Videos producidos por día (Redactor)", "Videos producidos");
+
+      this.redactorMonthlyChartInstance = new Chart(this.$refs.redactorMonthlyChart, {
+        type: "line",
+        data: {
+          labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
+          datasets: [{
+            label: "Videos por día",
+            data: monthlyAdjusted,
+            borderColor: "#ff9900",
+            backgroundColor: "rgba(255, 153, 0, 0.3)",
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: chartOptions
+      });
     },
     renderPreviousMonthChart() {
       if (this.previousMonthChartInstance) this.previousMonthChartInstance.destroy();
@@ -184,6 +343,12 @@ export default {
         }
       });
 
+      // Actualizar umbral si es necesario
+      const maxEnMesAnterior = Math.max(...monthlyAdjusted);
+      if (maxEnMesAnterior > this.maxVideosPorDiaPersonalizado) {
+        this.maxVideosPorDiaPersonalizado = maxEnMesAnterior;
+      }
+
       const chartOptions = this.getChartOptions("Videos producidos por día del mes pasado", "Videos producidos");
 
       this.previousMonthChartInstance = new Chart(this.$refs.previousMonthChart, {
@@ -212,15 +377,115 @@ export default {
         };
       });
     },
+    async fetchJefesRedaccion() {
+      this.jefesRedaccionDetalles = [];
 
+      try {
+        const response = await axios.get(`${this.baseURL}/api/user`);
+
+        // Filtrar solo los usuarios con rol JEFE_REDACCION
+        const jefesRedaccion = response.data.filter(user =>
+            user.role === "JEFE_REDACCION" &&
+            user.codigo // aseguramos que tenga código
+        );
+
+        console.log("✅ Jefes de Redacción encontrados:", jefesRedaccion);
+
+        // Por cada Jefe de Redacción, obtener sus videos personales
+        for (const jefe of jefesRedaccion) {
+          try {
+            const resVideos = await axios.get(`${this.baseURL}/api/personal-videos/${jefe.id}`);
+
+            // Procesar videos (igual que en los redactores)
+            const videosProcesados = resVideos.data.map((item) => {
+              const date = new Date(item.date);
+              const fechaPublicacion = date.toLocaleDateString("es-PE");
+              return {
+                ...item,
+                fechaPublicacion
+              };
+            });
+
+            // Agregar al array de detalles
+            this.jefesRedaccionDetalles.push({
+              codigo: jefe.codigo,
+              nombre: jefe.name,
+              videosProcesados
+            });
+
+          } catch (error) {
+            console.error(`Error al obtener videos de ${jefe.name}:`, error);
+          }
+        }
+
+        // Si es la primera vez, selecciona el primero como activo
+        if (this.jefesRedaccionDetalles.length > 0) {
+          this.activeJefeTab = this.jefesRedaccionDetalles[0].codigo;
+        }
+
+      } catch (error) {
+        console.error("Error al obtener usuarios (jefes de redacción):", error);
+      }
+    },
+    async fetchRedactoresGrupo() {
+      this.redactoresDetalles = [];
+
+      try {
+        const response = await axios.get(`${this.baseURL}/api/user`);
+
+        const redactoresGrupo = response.data.filter(user =>
+            user.role === "REDACTOR" &&
+            user.codigo &&
+            this.codigoGrupoJefe &&
+            user.codigo.startsWith(this.codigoGrupoJefe)
+        );
+
+        console.log("✅ Redactores del grupo encontrados:", redactoresGrupo);
+
+        for (const redactor of redactoresGrupo) {
+          try {
+            const resVideos = await axios.get(`${this.baseURL}/api/personal-videos/${redactor.id}`);
+
+            const videosProcesados = resVideos.data.map((item) => {
+              const date = new Date(item.date);
+              const fechaPublicacion = date.toLocaleDateString("es-PE");
+              return {
+                ...item,
+                fechaPublicacion
+              };
+            });
+
+            this.redactoresDetalles.push({
+              codigo: redactor.codigo,
+              nombre: redactor.name,
+              videosProcesados
+            });
+
+          } catch (error) {
+            console.error(`Error al obtener videos de ${redactor.name}:`, error);
+          }
+        }
+
+        // Si es la primera vez, selecciona el primero como activo
+        if (this.redactoresDetalles.length > 0) {
+          this.activeRedactorTab = this.redactoresDetalles[0].codigo;
+        }
+
+      } catch (error) {
+        console.error("Error al obtener usuarios:", error);
+      }
+    },
     async fetchStatisticsData() {
       try {
-        if (this.isEmpleado) {
+        if (this.isEmpleado && !this.isJefeRedaccion) {
           const { data } = await axios.get(`${this.baseURL}/api/personal-videos/${this.userStore.user.id}`);
           this.videos = data;
           this.$nextTick(() => {
             this.renderWeeklyChart();
             this.renderMonthlyChart();
+            if (this.showPreviousMonthTab) {
+              this.renderPreviousMonthChart();
+            }
           });
         } else {
           const resumen = await axios.get(`${this.baseURL}/api/production`);
@@ -260,7 +525,7 @@ export default {
           y: {
             beginAtZero: true,
             min: 0,
-            max: 12,
+            max: this.maxVideosPorDiaPersonalizado,  // 👈 usar el umbral dinámico
             ticks: { stepSize: 1, precision: 0 },
             title: { display: true, text: yLabel },
             grid: { color: "#E0E0E0" }
@@ -307,6 +572,12 @@ export default {
           if (!this.isCaido(v)) comisionAcumulada += comision;
         }
       });
+
+      // Actualizar umbral si es necesario
+      const maxEnSemana = Math.max(...weekly);
+      if (maxEnSemana > this.maxVideosPorDiaPersonalizado) {
+        this.maxVideosPorDiaPersonalizado = maxEnSemana;
+      }
 
       const chartOptions = this.getChartOptions("Videos producidos por día de la semana", "Videos producidos");
 
@@ -362,6 +633,12 @@ export default {
         }
       });
 
+      // Actualizar umbral si es necesario
+      const maxEnMes = Math.max(...monthlyAdjusted);
+      if (maxEnMes > this.maxVideosPorDiaPersonalizado) {
+        this.maxVideosPorDiaPersonalizado = maxEnMes;
+      }
+
       const chartOptions = this.getChartOptions("Videos producidos por día de este mes", "Videos producidos");
 
       this.monthlyChartInstance = new Chart(this.$refs.monthlyChart, {
@@ -389,7 +666,6 @@ export default {
           mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
         };
       });
-
     },
 
     renderCharts() {
@@ -397,7 +673,16 @@ export default {
     }
   },
   created() {
-    this.fetchStatisticsData();
+    this.fetchStatisticsData().then(() => {
+      // Forzar render inicial si corresponde
+      if (this.isEmpleado || this.isDirectivo) {
+        this.$nextTick(() => {
+          if (this.activeTab === 'semana') this.renderWeeklyChart();
+          if (this.activeTab === 'mes') this.renderMonthlyChart();
+          if (this.activeTab === 'mesAnterior') this.renderPreviousMonthChart();
+        });
+      }
+    });
   }
 };
 </script>
@@ -570,6 +855,23 @@ h2 {
 .tab-container button.active-tab {
   border-bottom: 2px solid #007bff;
   color: #007bff;
+}
+
+.filter-button {
+  background-color: #0056b3;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.filter-button:hover {
+  background-color: #003d82;
+  transform: scale(1.05);
 }
 
 </style>
