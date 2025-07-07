@@ -1,77 +1,77 @@
 <template>
   <div class="video-performance">
-    <!-- Navegación de pestañas -->
+    <!-- Pestañas -->
     <div class="tab-container">
-      <!-- Día 1-2: solo mes pasado -->
+      <!-- Día 4-7: ambas pestañas -->
       <button
-          v-if="showOnlyLastMonthTab"
-          :class="{ 'active-tab': activeTab === 'mesPasado' }"
-          @click="activeTab = 'mesPasado'"
-      >
-        Resumen mes pasado
+          v-if="isDirectivo || showBothTabs || showOnlyCurrentMonthTab"
+          :class="{ 'active-tab': activeTab === 'produccion' }"
+          @click="activeTab = 'produccion'">
+        Resumen actual
       </button>
 
-      <!-- Día 3-7: ambos -->
+      <!-- Día 1-3: solo mes pasado -->
       <button
-          v-if="showBothTabs || showOnlyCurrentMonthTab"
-          :class="{ 'active-tab': activeTab === 'produccion' }"
-          @click="activeTab = 'produccion'"
-      >
-        Resumen actual
+          v-if="isDirectivo || showOnlyLastMonthTab || showBothTabs"
+          :class="{ 'active-tab': activeTab === 'mesPasado' }"
+          @click="activeTab = 'mesPasado'">
+        Resumen mes pasado
       </button>
 
       <button
           v-if="showBothTabs"
           :class="{ 'active-tab': activeTab === 'mesPasado' }"
-          @click="activeTab = 'mesPasado'"
-      >
+          @click="activeTab = 'mesPasado'">
         Resumen mes pasado
       </button>
+
+      <!-- Directivos: JR's y demás -->
       <button
           v-if="isDirectivo || isJefePrensa"
           :class="{ 'active-tab': activeTab === 'jr' }"
-          @click="activeTab = 'jr'"
-      >
+          @click="activeTab = 'jr'">
         Resumen JR's
       </button>
+
       <button
           v-if="isJefeRedaccion"
           :class="{ 'active-tab': activeTab === 'redactores' }"
-          @click="activeTab = 'redactores'"
-      >
+          @click="activeTab = 'redactores'">
         Redactores
       </button>
     </div>
 
-    <!-- Contenido de Resumen de Producción -->
-    <div v-if="activeTab === 'produccion'">
-      <h3>Resumen de Producción</h3>
-      <p v-if="isEmpleado && useLastMonth" class="info-aviso">
-        Mostrando datos del mes anterior (hasta el 4 de este mes)
-      </p>
-      <div :class="['horizontal-container', { 'full-width-card': isEmpleado }]">
 
-        <!-- 👤 Empleados: datos personales -->
+    <!-- Contenido de Resumen de Producción -->
+    <div v-if="activeTab === 'produccion' || activeTab === 'mesPasado'">
+      <h3>Resumen de Producción</h3>
+
+      <p v-if="useLastMonth" class="info-aviso">
+        Mostrando datos del mes anterior
+      </p>
+
+      <div :class="['horizontal-container', { 'full-width-card': isEmpleado }]">
+        <!-- 👤 Empleados -->
         <div v-if="isEmpleado">
           <table v-if="!isLoadingProduction" class="production-table">
             <tbody>
             <tr>
               <td class="label">Total de Videos:</td>
               <td class="value">
-                {{ useLastMonth ? productionDataLastMonth.videosTotales : productionData.videosTotales }}
+                {{ activeTab === 'mesPasado' ? productionDataLastMonth.videosTotales : productionData.videosTotales }}
               </td>
             </tr>
             <tr>
               <td class="label">Videos Caídos:</td>
               <td class="value">
-                {{ useLastMonth ? productionDataLastMonth.videosCaidos : productionData.videosCaidos }}
+                {{ activeTab === 'mesPasado' ? productionDataLastMonth.videosCaidos : productionData.videosCaidos }}
               </td>
             </tr>
             <tr>
               <td class="label">Videos Productivos:</td>
               <td class="value">
                 {{
-                  (useLastMonth
+                  (activeTab === 'mesPasado'
                       ? productionDataLastMonth.videosTotales - productionDataLastMonth.videosCaidos
                       : productionData.videosTotales - productionData.videosCaidos)
                 }}
@@ -80,7 +80,7 @@
             <tr>
               <td class="label">Comisión:</td>
               <td class="value">
-                ${{ (useLastMonth ? productionDataLastMonth.comisionDolares : productionData.comisionDolares)?.toFixed(2) || '0.00' }} USD
+                ${{ (activeTab === 'mesPasado' ? productionDataLastMonth.comisionDolares : productionData.comisionDolares)?.toFixed(2) || '0.00' }} USD
               </td>
             </tr>
             </tbody>
@@ -88,49 +88,51 @@
           <p v-else>Cargando datos personales...</p>
         </div>
 
-
-        <!-- 🧑‍💼 Directivos: datos globales -->
-        <div v-else>
-          <table v-if="productionData.totalVideos != null" class="production-table">
+        <div v-if="isDirectivo">
+          <table v-if="!isLoadingProduction" class="production-table">
             <tbody>
             <tr>
               <td class="label">Total de Videos:</td>
-              <td class="value">{{ productionData.totalVideos }}</td>
+              <td class="value">
+                {{ activeTab === 'mesPasado' ? productionDataLastMonth.totalVideos : productionData.totalVideos }}
+              </td>
             </tr>
             <tr>
               <td class="label">Videos Caídos:</td>
-              <td class="value">{{ productionData.videosCaidos }}</td>
+              <td class="value">
+                {{ activeTab === 'mesPasado' ? productionDataLastMonth.videosCaidos : productionData.videosCaidos }}
+              </td>
             </tr>
             <tr>
-              <td class="label">Ganancia Total:</td>
-              <td class="value">{{ productionData.gananciaTotal }}</td>
-            </tr>
-            <tr>
-              <td class="label">Ganancia menos impuestos:</td>
-              <td class="value">{{ productionData.gananciaMenosImpuestos }}</td>
+              <td class="label">Ganancia Bruta:</td>
+              <td class="value">
+                ${{ (activeTab === 'mesPasado' ? productionDataLastMonth.gananciaTotal : productionData.gananciaTotal)?.toFixed(2) || '0.00' }} USD
+              </td>
             </tr>
             <tr>
               <td class="label">Ganancia Neta:</td>
-              <td class="value">{{ productionData.gananciaNeta }}</td>
+              <td class="value">
+                ${{ (activeTab === 'mesPasado' ? productionDataLastMonth.gananciaNeta : productionData.gananciaNeta)?.toFixed(2) || '0.00' }} USD
+              </td>
             </tr>
             <tr>
-              <td class="label">Coste de Producción:</td>
-              <td class="value">{{ productionData.costeProduccion }}</td>
+              <td class="label">Coste Producción:</td>
+              <td class="value">
+                ${{ (activeTab === 'mesPasado' ? productionDataLastMonth.costeTotalProduccion : productionData.costeTotalProduccion)?.toFixed(2) || '0.00' }} USD
+              </td>
             </tr>
             <tr>
-              <td class="label">Coste Total de Producción:</td>
-              <td class="value">{{ productionData.costeTotalProduccion }}</td>
-            </tr>
-            <tr>
-              <td class="label">Total Generado por Videos Caídos:</td>
-              <td class="value">{{ productionData.totalGeneradoPorCaidos }}</td>
+              <td class="label">Total generado por caídos:</td>
+              <td class="value">
+                ${{ (activeTab === 'mesPasado' ? productionDataLastMonth.totalGeneradoPorCaidos : productionData.totalGeneradoPorCaidos)?.toFixed(2) || '0.00' }} USD
+              </td>
             </tr>
             </tbody>
           </table>
-          <p v-else>Cargando datos globales...</p>
+          <p v-else>Cargando datos...</p>
 
-          <!-- Comparativa visual -->
-          <div ref="chart" class="chart-container">
+          <!-- Radar chart debajo (opcional) -->
+          <div ref="chart" class="chart-container" style="margin-top: 20px;">
             <h3>Comparación de Producción</h3>
             <canvas id="radarChart"></canvas>
             <div class="button-container">
@@ -144,72 +146,84 @@
     </div>
 
 
+
     <!-- Contenido de Resumen JR's -->
-    <div v-if="activeTab === 'jr'" class="ranking-container">
-      <h3>Resumen JR's</h3>
-      <div
-          class="jr-card"
-          v-for="(jefe, index) in sortedJefes"
-          :key="jefe.id"
-      >
-        <div class="jr-header">
-          <span class="jr-position">#{{ index + 1 }}</span>
-          <span class="jr-name">{{ jefe.nombre }}</span>
-        </div>
-        <div class="jr-stats">
-          <div class="jr-stat-item">
-            <span class="jr-stat-label">Producción Total</span>
-            <span class="jr-stat-value">{{ jefe.produccionTotal }}</span>
+    <div v-if="activeTab === 'jr'">
+      <h3>Resumen JR's</h3> <!-- Título centrado, fuera del ranking-container -->
+
+      <div class="ranking-container">
+        <div
+            class="jr-card"
+            v-for="(jefe, index) in sortedJefes"
+            :key="jefe.id"
+        >
+          <div class="jr-header">
+            <span class="jr-position">#{{ index + 1 }}</span>
+            <span class="jr-name">{{ jefe.nombre }}</span>
           </div>
-          <div class="jr-stat-item">
-            <span class="jr-stat-label">Ganancias Totales</span>
-            <span class="jr-stat-value">{{ jefe.gananciasTotales }}</span>
-          </div>
-          <div class="jr-stat-item">
-            <span class="jr-stat-label">Ganancias Netas</span>
-            <span class="jr-stat-value">{{ jefe.gananciasNetas }}</span>
-          </div>
-          <div class="jr-stat-item">
-            <span class="jr-stat-label">Número de Caídos</span>
-            <span class="jr-stat-value">{{ jefe.caidos }}</span>
+          <div class="jr-stats">
+            <div class="jr-stat-item">
+              <span class="jr-stat-label">Producción Total</span>
+              <span class="jr-stat-value">{{ jefe.totalVideos }}</span>
+            </div>
+            <div class="jr-stat-item">
+              <span class="jr-stat-label">Videos Caídos</span>
+              <span class="jr-stat-value">{{ jefe.videosCaidos }}</span>
+            </div>
+            <div class="jr-stat-item">
+              <span class="jr-stat-label">Ganancia Bruta</span>
+              <span class="jr-stat-value">${{ jefe.gananciaTotal?.toFixed(2) || '0.00' }}</span>
+            </div>
+            <div class="jr-stat-item">
+              <span class="jr-stat-label">Ganancias Netas</span>
+              <span class="jr-stat-value">${{ jefe.gananciaNeta?.toFixed(2) || '0.00' }}</span>
+            </div>
+            <div class="jr-stat-item">
+              <span class="jr-stat-label">Coste Producción</span>
+              <span class="jr-stat-value">${{ jefe.costeTotalProduccion?.toFixed(2) || '0.00' }}</span>
+            </div>
+            <div class="jr-stat-item">
+              <span class="jr-stat-label">Total generado por caídos</span>
+              <span class="jr-stat-value">${{ jefe.totalGeneradoPorCaidos?.toFixed(2) || '0.00' }}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Contenido de Redactores (para Jefe de Redacción) -->
-    <div v-if="activeTab === 'redactores'" class="ranking-container">
-      <h3>Redactores</h3>
-      <div
-          class="redactor-card"
-          v-for="(redactor, index) in redactores"
-          :key="redactor.codigo"
-      >
-        <div class="redactor-header">
-          <span class="redactor-position">#{{ index + 1 }}</span>
-          <span class="redactor-name">{{ redactor.nombre }}</span>
-        </div>
-        <div class="redactor-stats">
-          <div class="redactor-stat-item">
-            <span class="redactor-stat-label">Videos Totales:</span>
-            <span class="redactor-stat-value">{{ redactor.videosTotales }}</span>
+    <div v-if="activeTab === 'redactores'">
+      <h3>Redactores</h3> <!-- Título queda centrado arriba -->
+
+      <div class="ranking-container">
+        <div
+            class="redactor-card"
+            v-for="(redactor, index) in redactoresFiltrados"
+            :key="redactor.codigo"
+        >
+          <div class="redactor-header">
+            <span class="redactor-position">#{{ index + 1 }}</span>
+            <span class="redactor-name">{{ redactor.nombre }}</span>
           </div>
-          <div class="redactor-stat-item">
-            <span class="redactor-stat-label">Videos Caídos:</span>
-            <span class="redactor-stat-value">{{ redactor.videosCaidos }}</span>
-          </div>
-          <div class="redactor-stat-item">
-            <span class="redactor-stat-label">Comisión:</span>
-            <span class="redactor-stat-value">${{ redactor.comisionDolares }}</span>
+          <div class="redactor-stats">
+            <div class="redactor-stat-item">
+              <span class="redactor-stat-label">Videos Totales:</span>
+              <span class="redactor-stat-value">{{ redactor.videosTotales }}</span>
+            </div>
+            <div class="redactor-stat-item">
+              <span class="redactor-stat-label">Videos Caídos:</span>
+              <span class="redactor-stat-value">{{ redactor.videosCaidos }}</span>
+            </div>
+            <div class="redactor-stat-item">
+              <span class="redactor-stat-label">Comisión:</span>
+              <span class="redactor-stat-value">${{ redactor.comisionDolares }}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
-
-
-
 
 <script>
 import axios from "axios";
@@ -277,19 +291,89 @@ export default {
         const day = today.getDate();
 
         if (this.isDirectivo) {
-          await this.fetchProductionData();
+          await this.fetchProductionData(); // directivo: ya hace ambos
         } else {
-          if (day <= 4) {
-            await this.fetchPersonalProductionLastMonth();
-          } else {
-            await this.fetchPersonalProduction();
-          }
+          // Empleado: SIEMPRE cargar ambos, para que las pestañas funcionen
+          await Promise.all([
+            this.fetchPersonalProduction(),
+            this.fetchPersonalProductionLastMonth()
+          ]);
         }
 
         await this.fetchJRData();
         await this.fetchTopVideos();
+
+        if (this.isJefeRedaccion) {
+          await this.fetchRedactores();
+        }
+
       } catch (error) {
         console.error("❌ Error al cargar datos según rol:", error);
+      }
+    },
+    async fetchRedactores() {
+      if (!this.isJefeRedaccion) return;
+
+      try {
+        const response = await axios.get(`${this.baseURL}/api/user`);
+
+        const redactoresGrupo = response.data.filter(user =>
+            user.role === "REDACTOR" &&
+            user.codigo &&
+            this.grupoRedactores &&
+            user.codigo.startsWith(this.grupoRedactores)
+        );
+
+        console.log("✅ Redactores del grupo encontrados:", redactoresGrupo);
+
+        // Ahora traemos su producción:
+        const redactoresConProduccion = await Promise.all(
+            redactoresGrupo.map(async (redactor) => {
+              try {
+                const resVideos = await axios.get(`${this.baseURL}/api/personal-videos/${redactor.id}`);
+                const videos = resVideos.data;
+
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+
+                let total = 0;
+                let caidos = 0;
+                let comision = 0;
+
+                videos.forEach((v) => {
+                  const date = new Date(v.date);
+                  const isSameMonth = date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+                  if (isSameMonth) {
+                    total++;
+                    const revenue = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
+                    if (revenue < 1.66452) {
+                      caidos++;
+                    } else {
+                      comision += revenue;
+                    }
+                  }
+                });
+
+                return {
+                  codigo: redactor.codigo,
+                  nombre: redactor.name,
+                  videosTotales: total,
+                  videosCaidos: caidos,
+                  comisionDolares: comision.toFixed(2)
+                };
+              } catch (error) {
+                console.error(`Error al obtener videos de ${redactor.name}:`, error);
+                return null;
+              }
+            })
+        );
+
+        // Filtramos los que sí se cargaron bien:
+        this.redactores = redactoresConProduccion.filter(r => r !== null);
+
+      } catch (error) {
+        console.error("Error al obtener redactores:", error);
       }
     },
     async fetchPersonalProduction() {
@@ -343,6 +427,7 @@ export default {
       }
     },
     async fetchProductionData() {
+      this.isLoadingProduction = true; // también puedes poner esto al inicio para mayor claridad
       try {
         const response = await axios.get(`${this.baseURL}/api/production`);
         Object.assign(this.productionData, response.data);
@@ -353,6 +438,8 @@ export default {
         this.renderChart();
       } catch (error) {
         console.error("❌ Error capturado:", error.message);
+      } finally {
+        this.isLoadingProduction = false; // 🚩 NECESARIO
       }
     },
     async fetchJRData() {
@@ -366,17 +453,21 @@ export default {
       }
     },
     async fetchTopVideos() {
-      if (this.isEmpleado) {
-        try {
+      try {
+        if (this.isEmpleado) {
           const response = await axios.get(
               `${this.baseURL}/api/personal-videos/${this.userStore.user.id}`
           );
           this.topVideos = response.data
               .sort((a, b) => b.estimatedRevenue - a.estimatedRevenue)
               .slice(0, 5);
-        } catch (error) {
-          console.error("Error al obtener los mejores videos:", error.message);
+        } else {
+          // Para evitar errores en templates que lo usen:
+          this.topVideos = []; // 🟢 evita null o undefined
         }
+      } catch (error) {
+        console.error("Error al obtener los mejores videos:", error.message);
+        this.topVideos = []; // fallback seguro
       }
     },
     renderChart() {
@@ -463,6 +554,17 @@ export default {
     },
   },
   computed: {
+    grupoRedactores() {
+      if (this.userStore.user.role !== "JEFE_REDACCION") return null;
+      const codigoJefe = this.userStore.user.codigo; // Ejemplo: "JR5"
+      const grupo = codigoJefe.substring(2); // obtiene "5"
+      return `RA${grupo}`;
+    },
+    redactoresFiltrados() {
+      if (this.userStore.user.role !== "JEFE_REDACCION" || !this.redactores) return [];
+      const prefijo = this.grupoRedactores;
+      return this.redactores.filter(redactor => redactor.codigo.startsWith(prefijo));
+    },
     userStore() {
       return useUserStore();
     },
@@ -476,27 +578,36 @@ export default {
       return this.userStore.user.role === "JEFE_REDACCION";
     },
     isEmpleado() {
-      return ["REDACTOR", "LOCUTOR", "EDITOR", "PANELISTA"].includes(this.userStore.user.role);
+      return [
+        "REDACTOR",
+        "LOCUTOR",
+        "EDITOR",
+        "PANELISTA",
+        "JEFE_REDACCION",
+        "JEFE_ENTREVISTAS",
+        "JEFE_PRENSA"
+      ].includes(this.userStore.user.role);
     },
     sortedJefes() {
       return this.jrData
           ? [...this.jrData].sort((a, b) => b.gananciaPromedio - a.gananciaPromedio)
           : [];
     },
-    useLastMonth() {
-      return this.isEmpleado && new Date().getDate() <= 7;
-    },
     showOnlyLastMonthTab() {
       const day = new Date().getDate();
-      return this.isEmpleado && day <= 2;
+      return this.isEmpleado && day >= 1 && day <= 3;
     },
     showBothTabs() {
       const day = new Date().getDate();
-      return this.isEmpleado && day >= 3 && day <= 7;
+      return this.isEmpleado && day >= 4 && day <= 7;
     },
     showOnlyCurrentMonthTab() {
       const day = new Date().getDate();
       return this.isEmpleado && day >= 8;
+    },
+    useLastMonth() {
+      // Útil para el aviso de "Mostrando mes pasado"
+      return this.isEmpleado && (this.showOnlyLastMonthTab || (this.showBothTabs && this.activeTab === 'mesPasado'));
     }
   },
 };
@@ -864,6 +975,73 @@ canvas {
   color: #777;
   font-style: italic;
   margin-bottom: 10px;
+}
+
+/* Tarjeta para cada Redactor */
+.redactor-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.redactor-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Encabezado con posición y nombre */
+.redactor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.redactor-position {
+  font-size: 18px;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.redactor-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-left: 10px;
+}
+
+/* Contenedor de estadísticas */
+.redactor-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 10px;
+  column-gap: 15px;
+  width: 100%;
+}
+
+.redactor-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.redactor-stat-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.redactor-stat-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
 }
 
 </style>

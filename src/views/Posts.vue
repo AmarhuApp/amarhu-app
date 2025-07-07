@@ -26,6 +26,7 @@
 
 <script>
 import axios from 'axios';
+import { useUserStore } from '@/store/user'; // IMPORTANTE: agrega esto
 
 export default {
   name: "Posts",
@@ -35,15 +36,22 @@ export default {
       baseURL: "https://api.pa-reporte.com", // URL base de producción
     };
   },
+  computed: {
+    userStore() {
+      return useUserStore();
+    },
+    isDirectivo() {
+      return this.userStore.user.role === "DIRECTIVO";
+    },
+  },
   methods: {
     async fetchPosts() {
       try {
         const response = await axios.get(`${this.baseURL}/api/noticias`);
-        // Simulación de ordenamiento y adición de estado "Me gusta" (ahora con axios)
         const orderedPosts = response.data.sort((a, b) => {
-          if (a.id === 4) return -1; // Publicación de bienvenida primero
+          if (a.id === 4) return -1;
           if (b.id === 4) return 1;
-          return new Date(b.date) - new Date(a.date); // Orden descendente por fecha
+          return new Date(b.date) - new Date(a.date);
         });
 
         this.posts = orderedPosts.map((post) => ({
@@ -55,7 +63,7 @@ export default {
       }
     },
     toggleReaction(post) {
-      post.liked = !post.liked; // Alternar el estado de "Me gusta"
+      post.liked = !post.liked;
     },
     formatDate(date) {
       const now = new Date();
@@ -79,7 +87,6 @@ export default {
       } else if (diffDays <= 7) {
         return `Hace ${diffDays} días`;
       } else {
-        // Devuelve la fecha en formato "DD-MM-YYYY"
         return postDate.toLocaleDateString("es-ES", {
           day: "2-digit",
           month: "2-digit",
@@ -93,6 +100,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .posts-container {
