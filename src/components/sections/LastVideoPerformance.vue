@@ -145,51 +145,109 @@
       </div>
     </div>
 
-
-
     <!-- Contenido de Resumen JR's -->
     <div v-if="activeTab === 'jr'">
-      <h3>Resumen JR's</h3> <!-- Título centrado, fuera del ranking-container -->
+      <h3>Resumen JR's</h3>
 
       <div class="ranking-container">
         <div
             class="jr-card"
             v-for="(jefe, index) in sortedJefes"
             :key="jefe.id"
+            :class="{ expandida: jefeExpandido === jefe.codigo }"
         >
-          <div class="jr-header">
-            <span class="jr-position">#{{ index + 1 }}</span>
-            <span class="jr-name">{{ jefe.nombre }}</span>
-          </div>
-          <div class="jr-stats">
-            <div class="jr-stat-item">
-              <span class="jr-stat-label">Producción Total</span>
-              <span class="jr-stat-value">{{ jefe.totalVideos }}</span>
+          <transition name="fade-expand">
+            <div>
+              <!-- Card minimizada -->
+              <div v-if="jefeExpandido !== jefe.codigo" @click="expandirJefe(jefe)" class="jr-card-content">
+                <div class="jr-header">
+                  <span class="jr-position">#{{ index + 1 }}</span>
+                  <span class="jr-name">{{ jefe.nombre }}</span>
+                </div>
+                <div class="jr-stats">
+                  <div class="jr-stat-item">
+                    <span class="jr-stat-label">Producción Total</span>
+                    <span class="jr-stat-value">{{ jefe.totalVideos }}</span>
+                  </div>
+                  <div class="jr-stat-item">
+                    <span class="jr-stat-label">Videos Caídos</span>
+                    <span class="jr-stat-value">{{ jefe.videosCaidos }}</span>
+                  </div>
+                  <div class="jr-stat-item">
+                    <span class="jr-stat-label">Ganancia Bruta</span>
+                    <span class="jr-stat-value">${{ jefe.gananciaTotal?.toFixed(2) || '0.00' }}</span>
+                  </div>
+                  <div class="jr-stat-item">
+                    <span class="jr-stat-label">Ganancias Netas</span>
+                    <span class="jr-stat-value">${{ jefe.gananciaNeta?.toFixed(2) || '0.00' }}</span>
+                  </div>
+                  <div class="jr-stat-item">
+                    <span class="jr-stat-label">Coste Producción</span>
+                    <span class="jr-stat-value">${{ jefe.costeTotalProduccion?.toFixed(2) || '0.00' }}</span>
+                  </div>
+                  <div class="jr-stat-item">
+                    <span class="jr-stat-label">Total generado por caídos</span>
+                    <span class="jr-stat-value">${{ jefe.totalGeneradoPorCaidos?.toFixed(2) || '0.00' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card expandida -->
+              <div v-else class="jr-card-expandida">
+                <button @click="jefeExpandido = null" class="volver-btn">⬅ Volver</button>
+
+                <div class="table-container">
+                  <table class="reports-table">
+                    <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>ID</th>
+                      <th>Título</th>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Views</th>
+                      <th>Monto Redactor</th>
+                      <th>Tiempo de Vista (s)</th>
+                      <th>RPM</th>
+                      <th>Categoría</th>
+                      <th>Color</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr
+                        v-for="(item, i) in detallesPorJefe[jefe.codigo]"
+                        :key="item.videoId"
+                    >
+                      <td>{{ i + 1 }}</td>
+                      <td style="font-family: monospace">{{ item.videoId }}</td>
+                      <td>{{ item.title }}</td>
+                      <td>{{ item.fechaPublicacion }}</td>
+                      <td>{{ item.horaPublicacion }}</td>
+                      <td>{{ item.views }}</td>
+                      <td>${{ item.montoEmpleado.toFixed(4) }}</td>
+                      <td>{{ item.averageViewDuration }}</td>
+                      <td>{{ item.rpm }}</td>
+                      <td>{{ item.categoria }}</td>
+                      <td>
+                        <div :style="{
+                        backgroundColor: item.colorCategoria,
+                        width: '50px',
+                        height: '20px',
+                        borderRadius: '4px',
+                        margin: 'auto'
+                      }"></div>
+                      </td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-            <div class="jr-stat-item">
-              <span class="jr-stat-label">Videos Caídos</span>
-              <span class="jr-stat-value">{{ jefe.videosCaidos }}</span>
-            </div>
-            <div class="jr-stat-item">
-              <span class="jr-stat-label">Ganancia Bruta</span>
-              <span class="jr-stat-value">${{ jefe.gananciaTotal?.toFixed(2) || '0.00' }}</span>
-            </div>
-            <div class="jr-stat-item">
-              <span class="jr-stat-label">Ganancias Netas</span>
-              <span class="jr-stat-value">${{ jefe.gananciaNeta?.toFixed(2) || '0.00' }}</span>
-            </div>
-            <div class="jr-stat-item">
-              <span class="jr-stat-label">Coste Producción</span>
-              <span class="jr-stat-value">${{ jefe.costeTotalProduccion?.toFixed(2) || '0.00' }}</span>
-            </div>
-            <div class="jr-stat-item">
-              <span class="jr-stat-label">Total generado por caídos</span>
-              <span class="jr-stat-value">${{ jefe.totalGeneradoPorCaidos?.toFixed(2) || '0.00' }}</span>
-            </div>
-          </div>
+          </transition>
         </div>
       </div>
     </div>
+
 
     <!-- Contenido de Redactores (para Jefe de Redacción) -->
     <div v-if="activeTab === 'redactores'">
@@ -260,6 +318,8 @@ export default {
         costeTotalProduccion: 0,
         totalGeneradoPorCaidos: 0,
       },
+      jefeExpandido: null, // Código del jefe actualmente expandido
+      detallesPorJefe: {},
       jrData: null,
       topVideos: [],
       redactores: [],
@@ -284,6 +344,97 @@ export default {
     );
   },
   methods: {
+    async expandirJefe(jefe) {
+      if (this.jefeExpandido === jefe.codigo) {
+        this.jefeExpandido = null;
+        return;
+      }
+
+      this.jefeExpandido = jefe.codigo;
+
+      if (!this.detallesPorJefe[jefe.codigo]) {
+        try {
+          // Obtener todos los usuarios
+          const responseUsuarios = await axios.get("https://api.pa-reporte.com/api/user");
+
+          // Buscar al jefe por código
+          const jefeCompleto = responseUsuarios.data.find(u =>
+              u.role === "JEFE_REDACCION" && u.codigo === jefe.codigo
+          );
+
+          if (!jefeCompleto) {
+            console.warn(`⚠️ No se encontró al jefe con código ${jefe.codigo}`);
+            return;
+          }
+
+          // Usar su ID real para consultar sus videos
+          const responseVideos = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${jefeCompleto.id}`);
+          const procesados = this.procesarVideos(responseVideos.data);
+          this.detallesPorJefe[jefe.codigo] = procesados;
+
+        } catch (error) {
+          console.error(`❌ Error al obtener detalles de ${jefe.nombre}:`, error);
+        }
+      }
+    },
+
+    procesarVideos(videos) {
+      const today = new Date();
+      const day = today.getDate();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      return videos.filter((item) => {
+        const date = new Date(item.date);
+        const videoMonth = date.getMonth();
+        const videoYear = date.getFullYear();
+        if (day <= 7) {
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+          const lastYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+          return (videoMonth === currentMonth && videoYear === currentYear) ||
+              (videoMonth === lastMonth && videoYear === lastYear);
+        } else {
+          return videoMonth === currentMonth && videoYear === currentYear;
+        }
+      }).map((item) => {
+        const montoEmpleado = (item.estimatedRevenue >= 10)
+            ? item.estimatedRevenue * 0.166452
+            : 0;
+
+        let categoria = "Sin Clasificación";
+        let colorCategoria = "#BDC3C7";
+        const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+        const rpm = parseFloat((rawRpm * 0.9).toFixed(2));
+
+        if (rpm < 0.95) {
+          categoria = "Extremadamente Bajo";
+          colorCategoria = "#C0392B";
+        } else if (rpm <= 1.41) {
+          categoria = "Bajo Impacto";
+          colorCategoria = "#E74C3C";
+        } else if (rpm <= 1.92) {
+          categoria = "Buen Impacto";
+          colorCategoria = "#F1C40F";
+        } else if (rpm <= 2.41) {
+          categoria = "Alto Impacto";
+          colorCategoria = "#3498DB";
+        } else {
+          categoria = "Impacto Sobresaliente";
+          colorCategoria = "#27AE60";
+        }
+
+        const fecha = new Date(item.date);
+        return {
+          ...item,
+          fechaPublicacion: fecha.toLocaleDateString("es-PE"),
+          horaPublicacion: fecha.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false }),
+          montoEmpleado,
+          categoria,
+          colorCategoria,
+          rpm
+        };
+      });
+    },
     async loadDataBasedOnRole() {
       console.log("🔍 Verificando rol: Directivo =", this.isDirectivo);
       try {
@@ -1042,6 +1193,117 @@ canvas {
   font-size: 16px;
   font-weight: bold;
   color: #333;
+}
+
+.jr-card {
+  background-color: white;
+  margin: 1.2rem 0;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: all 0.4s ease;
+}
+
+.jr-card.expandida {
+  transform: scale(1.01);
+  border: 2px solid #1976d2;
+}
+
+.jr-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jr-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.jr-stat-item {
+  flex: 1 1 30%;
+  margin-bottom: 1rem;
+  min-width: 160px;
+}
+
+.jr-stat-label {
+  font-weight: 500;
+  color: #666;
+}
+
+.jr-stat-value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #222;
+}
+
+.volver-btn {
+  background-color: #f1f1f1;
+  color: #1976d2;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.volver-btn:hover {
+  background-color: #e2e2e2;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.reports-table th, .reports-table td {
+  padding: 0.6rem 0.8rem;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.reports-table thead {
+  background-color: #f5f5f5;
+}
+
+.reports-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.reports-table th {
+  font-weight: 600;
+  color: #444;
+}
+
+.reports-table td {
+  color: #333;
+}
+
+.reports-table td:nth-child(2) {
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.fade-expand-enter-active,
+.fade-expand-leave-active {
+  transition: all 0.4s ease;
+}
+.fade-expand-enter-from,
+.fade-expand-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
 }
 
 </style>
