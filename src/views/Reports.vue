@@ -10,6 +10,7 @@
         <button @click="setFilter('caidos')">Videos Caídos</button>
         <button v-if="!isEmpleado || isDirectivo" @click="setFilter('pagos')">Leyenda de Pagos</button>
         <button v-if="isJefeRedaccion" @click="setFilter('redactores')">Redactores</button>
+        <button v-if="isDirectivo" @click="setFilter('grupo-redactores')">Producción Redactores</button>
       </div>
 
       <div class="search-container">
@@ -196,6 +197,80 @@
         </table>
       </div>
     </div>
+    <div v-if="currentFilter === 'grupo-redactores'" class="grupo-redactores-tabs">
+      <!-- Pestañas de jefes -->
+      <div class="tab-container jefe-tabs">
+        <button
+            v-for="(grupo, codigoJefe) in grupoRedactores"
+            :key="codigoJefe"
+            :class="{ 'active-tab': jefeSeleccionado?.codigo === codigoJefe }"
+            @click="selectJefe(codigoJefe)"
+        >
+          {{ grupo.nombreJefe }}
+        </button>
+      </div>
+
+      <!-- Pestañas de redactores dentro del jefe seleccionado -->
+      <div v-if="jefeSeleccionado && grupoRedactores[jefeSeleccionado.codigo]" class="tab-container redactor-tabs">
+        <button
+            v-for="redactor in grupoRedactores[jefeSeleccionado.codigo].redactores"
+            :key="redactor.codigo"
+            :class="{ 'active-tab': activeRedactorTab === redactor.codigo }"
+            @click="activeRedactorTab = redactor.codigo"
+        >
+          {{ redactor.name }}
+        </button>
+      </div>
+
+      <!-- Tabla de producción del redactor activo -->
+      <div v-if="activeRedactor" class="table-container">
+        <table class="reports-table">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>ID</th>
+            <th>Título</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Visualización</th>
+            <th>Monto Redactor</th>
+            <th>Tiempo de Vista (s)</th>
+            <th>RPM Real</th>
+            <th>Categoría</th>
+            <th>Color</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr
+              v-for="(item, index) in activeRedactor.videosProcesados"
+              :key="item.videoId"
+          >
+            <td>{{ index + 1 }}</td>
+            <td>{{ item.videoId }}</td>
+            <td>{{ item.title }}</td>
+            <td>{{ item.fechaPublicacion }}</td>
+            <td>{{ item.horaPublicacion }}</td>
+            <td>{{ item.views }}</td>
+            <td>${{ item.montoEmpleado.toFixed(4) }}</td>
+            <td>{{ item.averageViewDuration }}</td>
+            <td>{{ item.rpm }}</td>
+            <td>{{ item.categoria }}</td>
+            <td>
+              <div
+                  :style="{
+                backgroundColor: item.colorCategoria,
+                width: '50px',
+                height: '20px',
+                borderRadius: '4px',
+                margin: 'auto'
+              }"
+              ></div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -217,6 +292,9 @@ export default {
       currentFilter: "videos", // Por defecto se muestran todos los videos
       showFilterMenu: false,
       searchExpanded: false, // Controla la expansión de la barra de búsqueda
+      grupoRedactores: {},
+      jefeSeleccionado: null,
+      activeTab: 'grupo-redactores',
     };
   },
   computed: {
@@ -259,6 +337,11 @@ export default {
       }
       return [];
     },
+    activeRedactor() {
+      if (!this.jefeSeleccionado || !this.activeRedactorTab) return null;
+      const grupo = this.grupoRedactores[this.jefeSeleccionado.codigo];
+      return grupo?.redactores.find(r => r.codigo === this.activeRedactorTab) || null;
+    },
   },
   created() {
     console.log("🔍 userStore.user:", this.userStore.user);
@@ -266,9 +349,11 @@ export default {
     if (this.isEmpleado) {
       this.fetchPersonalVideos();
     } else if (this.isDirectivo) {
+      this.jefeSeleccionado = this.userStore.user;
       this.fetchVideos();
       this.fetchCaidos();
       this.fetchPagos();
+      this.fetchRedactoresPorGrupoJefe();
     } else {
       console.warn("⚠️ Role no manejado:", this.userStore.user.role);
     }
@@ -304,7 +389,7 @@ export default {
 
       for (const redactor of this.redactoresFiltradosPagos) {
         try {
-          const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos-codigo/${redactor.codigo}`);
+          const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${redactor.codigo}`);
 
           const videosProcesados = this.filterByDateRange(response.data).map((item) => {
             const montoEmpleado = (item.estimatedRevenue >= 10)
@@ -361,6 +446,108 @@ export default {
         } catch (error) {
           console.error(`Error al obtener videos de ${redactor.nombre}:`, error);
         }
+      }
+    },
+    async fetchRedactoresPorGrupoJefe() {
+      try {
+        const response = await axios.get("https://api.pa-reporte.com/api/user");
+        const users = response.data;
+
+        // Filtra solo jefes de redacción
+        const jefes = users.filter(user => user.role === "JEFE_REDACCION");
+
+        // Reinicia el objeto de grupos
+        this.grupoRedactores = {};
+
+        for (const jefe of jefes) {
+          const grupoJefe = jefe.codigo?.match(/\d+/)?.[0]; // "JR6" → "6"
+
+          // Redactores cuyo código es RA6xxx
+          const redactoresGrupo = users.filter(user => {
+            const grupoRedactor = user.codigo?.match(/RA(\d)/)?.[1]; // "RA6001" → "6"
+            return (
+                user.role === "REDACTOR" &&
+                grupoRedactor === grupoJefe
+            );
+          });
+
+          // Inicializa grupo
+          this.grupoRedactores[jefe.codigo] = {
+            nombreJefe: jefe.name || jefe.nombre || "Jefe",
+            redactores: [],
+          };
+
+          for (const redactor of redactoresGrupo) {
+            try {
+              const resVideos = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${redactor.id}`);
+              const videosFiltrados = this.filterByDateRange(resVideos.data);
+
+              const videosProcesados = videosFiltrados.map((item) => {
+                const montoEmpleado = (item.estimatedRevenue >= 10)
+                    ? item.estimatedRevenue * 0.166452
+                    : 0;
+
+                let categoria = "Sin Clasificación";
+                let colorCategoria = "#BDC3C7";
+                const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+                const rpm = parseFloat((rawRpm * 0.9).toFixed(2));
+
+                if (rpm < 0.95) {
+                  categoria = "Extremadamente Bajo";
+                  colorCategoria = "#C0392B";
+                } else if (rpm <= 1.41) {
+                  categoria = "Bajo Impacto";
+                  colorCategoria = "#E74C3C";
+                } else if (rpm <= 1.92) {
+                  categoria = "Buen Impacto";
+                  colorCategoria = "#F1C40F";
+                } else if (rpm <= 2.41) {
+                  categoria = "Alto Impacto";
+                  colorCategoria = "#3498DB";
+                } else if (rpm > 2.41) {
+                  categoria = "Impacto Sobresaliente";
+                  colorCategoria = "#27AE60";
+                }
+
+                const fechaOriginal = new Date(item.date);
+                const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+                const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                });
+
+                return {
+                  ...item,
+                  montoEmpleado,
+                  categoria,
+                  colorCategoria,
+                  fechaPublicacion,
+                  horaPublicacion,
+                  rpm,
+                };
+              });
+
+              // Agrega redactor y sus videos al grupo correspondiente
+              this.grupoRedactores[jefe.codigo].redactores.push({
+                ...redactor,
+                videosProcesados,
+              });
+
+            } catch (error) {
+              console.error(`❌ Error al obtener videos de ${redactor.name}:`, error);
+            }
+          }
+        }
+
+        // Activa el primer grupo como pestaña por defecto
+        const primerCodigoGrupo = Object.keys(this.grupoRedactores)[0];
+        if (primerCodigoGrupo) {
+          this.activeTab = primerCodigoGrupo;
+        }
+
+      } catch (error) {
+        console.error("❌ Error al obtener usuarios:", error);
       }
     },
     async fetchRedactoresGrupo() {
@@ -555,6 +742,8 @@ export default {
       } else if (filter === "redactores") {
         // 🔥 Aquí ya NO necesitas esperar "pagos", porque se basa en /api/users
         this.fetchRedactoresGrupo();
+      } else if (filter === "grupo-redactores") {
+        this.fetchRedactoresPorGrupoJefe()
       }
 
       this.showFilterMenu = false;
@@ -571,6 +760,14 @@ export default {
             pago.nombre.toLowerCase().includes(query)
         );
       }
+    },
+    selectJefe(codigoJefe) {
+      this.jefeSeleccionado = {
+        codigo: codigoJefe,
+        name: this.grupoRedactores[codigoJefe].nombreJefe
+      };
+      const redactores = this.grupoRedactores[codigoJefe]?.redactores || [];
+      this.activeRedactorTab = redactores[0]?.codigo || null;
     },
     toggleFilterMenu() {
       this.showFilterMenu = !this.showFilterMenu;
