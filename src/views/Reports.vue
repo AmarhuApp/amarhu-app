@@ -392,9 +392,8 @@ export default {
           const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${redactor.codigo}`);
 
           const videosProcesados = this.filterByDateRange(response.data).map((item) => {
-            const montoEmpleado = (item.estimatedRevenue >= 10)
-                ? item.estimatedRevenue * 0.166452
-                : 0;
+            const montoEmpleado = Number(item.estimatedRevenue);
+
 
             let categoria = "Sin Clasificación";
             let colorCategoria = "#BDC3C7";
@@ -483,9 +482,7 @@ export default {
               const videosFiltrados = this.filterByDateRange(resVideos.data);
 
               const videosProcesados = videosFiltrados.map((item) => {
-                const montoEmpleado = (item.estimatedRevenue >= 10)
-                    ? item.estimatedRevenue * 0.166452
-                    : 0;
+                const montoEmpleado = Number(item.estimatedRevenue);
 
                 let categoria = "Sin Clasificación";
                 let colorCategoria = "#BDC3C7";
@@ -572,9 +569,7 @@ export default {
             const resVideos = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${redactor.id}`);
 
             const videosProcesados = this.filterByDateRange(resVideos.data).map((item) => {
-              const montoEmpleado = (item.estimatedRevenue >= 10)
-                  ? item.estimatedRevenue * 0.166452
-                  : 0;
+              const montoEmpleado = Number(item.estimatedRevenue);
 
               let categoria = "Sin Clasificación";
               let colorCategoria = "#BDC3C7";
@@ -637,9 +632,7 @@ export default {
       try {
         const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${this.userStore.user.id}`);
         this.videos = this.filterByDateRange(response.data).map((item) => {
-          const montoEmpleado = (item.estimatedRevenue >= 10)
-              ? item.estimatedRevenue * 0.166452
-              : 0;
+          const montoEmpleado = Number(item.estimatedRevenue);
 
           let categoria = "Sin Clasificación";
           let colorCategoria = "#BDC3C7"; // Gris por defecto
