@@ -153,13 +153,13 @@
         <div
             class="jr-card"
             v-for="(jefe, index) in sortedJefes"
-            :key="jefe.id"
-            :class="{ expandida: jefeExpandido === jefe.codigo }"
+            :key="jefe.userId"
+            :class="{ expandida: jefeExpandido === jefe.userId }"
         >
           <transition name="fade-expand">
             <div>
               <!-- Card minimizada -->
-              <div v-if="jefeExpandido !== jefe.codigo" @click="expandirJefe(jefe)" class="jr-card-content">
+              <div v-if="jefeExpandido !== jefe.userId" @click="expandirJefe(jefe)" class="jr-card-content">
                 <div class="jr-header">
                   <span class="jr-position">#{{ index + 1 }}</span>
                   <span class="jr-name">{{ jefe.nombre }}</span>
@@ -195,51 +195,52 @@
               <!-- Card expandida -->
               <div v-else class="jr-card-expandida">
                 <button @click="jefeExpandido = null" class="volver-btn">⬅ Volver</button>
-
+                <p v-if="detallesPorJefe[jefe.userId]?.totalComision !== undefined">
+                  Comisión total: ${{ detallesPorJefe[jefe.userId].totalComision.toFixed(2) }}
+                </p>
                 <div class="table-container">
-                  <table class="reports-table">
-                    <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>ID</th>
-                      <th>Título</th>
-                      <th>Fecha</th>
-                      <th>Hora</th>
-                      <th>Views</th>
-                      <th>Monto Redactor</th>
-                      <th>Tiempo de Vista (s)</th>
-                      <th>RPM</th>
-                      <th>Categoría</th>
-                      <th>Color</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr
-                        v-for="(item, i) in detallesPorJefe[jefe.codigo]"
-                        :key="item.videoId"
-                    >
-                      <td>{{ i + 1 }}</td>
-                      <td style="font-family: monospace">{{ item.videoId }}</td>
-                      <td>{{ item.title }}</td>
-                      <td>{{ item.fechaPublicacion }}</td>
-                      <td>{{ item.horaPublicacion }}</td>
-                      <td>{{ item.views }}</td>
-                      <td>${{ item.montoEmpleado.toFixed(4) }}</td>
-                      <td>{{ item.averageViewDuration }}</td>
-                      <td>{{ item.rpm }}</td>
-                      <td>{{ item.categoria }}</td>
-                      <td>
-                        <div :style="{
-                        backgroundColor: item.colorCategoria,
-                        width: '50px',
-                        height: '20px',
-                        borderRadius: '4px',
-                        margin: 'auto'
-                      }"></div>
-                      </td>
-                    </tr>
-                    </tbody>
-                  </table>
+                  <div class="tabla-scrollable">
+                    <table class="reports-table">
+                      <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Views</th>
+                        <th>Comisión</th>
+                        <th>Promedio (s)</th>
+                        <th>RPM</th>
+                        <th>Categoría</th>
+                      </tr>
+                      </thead>
+                      <tbody v-if="detallesPorJefe[jefe.userId]?.videos?.length > 0">
+                      <tr
+                          v-for="(item, i) in detallesPorJefe[jefe.userId].videos"
+                          :key="item.videoId"
+                      >
+                        <td>{{ i + 1 }}</td>
+                        <td style="font-family: monospace">{{ item.videoId }}</td>
+                        <td>{{ item.fechaPublicacion }}</td>
+                        <td>{{ item.horaPublicacion }}</td>
+                        <td>{{ item.views }}</td>
+                        <td>
+                          {{ item.montoEmpleado !== undefined ? `$${item.montoEmpleado.toFixed(2)}` : "-" }}
+                        </td>
+                        <td>{{ item.averageViewDuration }}</td>
+                        <td>{{ item.rpm }}</td>
+                        <td>{{ item.categoria }}</td>
+                      </tr>
+                      </tbody>
+
+                      <!-- Mensaje si no hay datos -->
+                      <tbody v-else>
+                      <tr>
+                        <td colspan="11">No se encontraron videos para este jefe.</td>
+                      </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -345,61 +346,57 @@ export default {
   },
   methods: {
     async expandirJefe(jefe) {
-      if (this.jefeExpandido === jefe.codigo) {
+      if (!jefe.userId) {
+        console.warn("⚠️ Jefe sin userId:", jefe);
+        return;
+      }
+
+      if (this.jefeExpandido === jefe.userId) {
         this.jefeExpandido = null;
         return;
       }
 
-      this.jefeExpandido = jefe.codigo;
+      this.jefeExpandido = jefe.userId;
 
-      if (!this.detallesPorJefe[jefe.codigo]) {
+      if (!this.detallesPorJefe[jefe.userId]) {
         try {
-          // Obtener todos los usuarios
-          const responseUsuarios = await axios.get("https://api.pa-reporte.com/api/user");
-
-          // Buscar al jefe por código
-          const jefeCompleto = responseUsuarios.data.find(u =>
-              u.role === "JEFE_REDACCION" && u.codigo === jefe.codigo
-          );
-
-          if (!jefeCompleto) {
-            console.warn(`⚠️ No se encontró al jefe con código ${jefe.codigo}`);
-            return;
-          }
-
-          // Usar su ID real para consultar sus videos
-          const responseVideos = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${jefeCompleto.id}`);
-          const procesados = this.procesarVideos(responseVideos.data);
-          this.detallesPorJefe[jefe.codigo] = procesados;
-
+          const responseVideos = await axios.get(`${this.baseURL}/api/personal-videos/${jefe.userId}`);
+          console.log("➡️ Videos obtenidos:", responseVideos.data);
+          const { videos, totalComision } = this.procesarVideos(responseVideos.data);
+          this.detallesPorJefe = {
+            ...this.detallesPorJefe,
+            [jefe.userId]: { videos, totalComision }
+          };
+          console.log("✅ Procesado:", { videos, totalComision });
         } catch (error) {
-          console.error(`❌ Error al obtener detalles de ${jefe.nombre}:`, error);
+          console.error(`❌ Error al obtener videos de ${jefe.nombre}:`, error);
         }
       }
     },
-
     procesarVideos(videos) {
       const today = new Date();
       const day = today.getDate();
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
 
-      return videos.filter((item) => {
+      const filtrados = videos.filter((item) => {
         const date = new Date(item.date);
         const videoMonth = date.getMonth();
         const videoYear = date.getFullYear();
         if (day <= 7) {
           const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
           const lastYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-          return (videoMonth === currentMonth && videoYear === currentYear) ||
-              (videoMonth === lastMonth && videoYear === lastYear);
+          return (
+              (videoMonth === currentMonth && videoYear === currentYear) ||
+              (videoMonth === lastMonth && videoYear === lastYear)
+          );
         } else {
           return videoMonth === currentMonth && videoYear === currentYear;
         }
-      }).map((item) => {
-        const montoEmpleado = (item.estimatedRevenue >= 10)
-            ? item.estimatedRevenue * 0.166452
-            : 0;
+      });
+
+      const videosProcesados = filtrados.map((item) => {
+        const montoEmpleado = Number(item.estimatedRevenue);
 
         let categoria = "Sin Clasificación";
         let colorCategoria = "#BDC3C7";
@@ -427,13 +424,26 @@ export default {
         return {
           ...item,
           fechaPublicacion: fecha.toLocaleDateString("es-PE"),
-          horaPublicacion: fecha.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false }),
+          horaPublicacion: fecha.toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }),
           montoEmpleado,
           categoria,
           colorCategoria,
-          rpm
+          rpm,
         };
       });
+
+      const totalComision = videosProcesados.reduce(
+          (sum, v) => sum + (parseFloat(v.montoEmpleado) || 0),
+          0
+      );
+      return {
+        videos: videosProcesados,
+        totalComision,
+      };
     },
     async loadDataBasedOnRole() {
       console.log("🔍 Verificando rol: Directivo =", this.isDirectivo);
@@ -1304,6 +1314,12 @@ canvas {
 .fade-expand-leave-to {
   opacity: 0;
   transform: scale(0.97);
+}
+
+.tabla-scrollable {
+  max-height: 400px; /* Ajusta según lo que necesites */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 </style>
