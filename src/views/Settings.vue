@@ -94,12 +94,12 @@ export default {
         this.topRpmVideos = [...recentVideos]
             .filter(v => v.rpm != null)
             .sort((a, b) => b.rpm - a.rpm)
-            .slice(0, 15);
+            .slice(0, 20);
 
         this.topViewVideos = [...recentVideos]
             .filter(v => v.views != null)
             .sort((a, b) => b.views - a.views)
-            .slice(0, 15);
+            .slice(0, 20);
 
       } catch (error) {
         console.error('Error cargando videos:', error);
