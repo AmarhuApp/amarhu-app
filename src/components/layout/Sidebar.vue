@@ -15,7 +15,7 @@
             <span v-if="!isCollapsed">Inicio</span>
           </router-link>
         </li>
-        <li v-if="!isEmpleado">
+        <li v-if="isDirectivo">
           <router-link to="/posts"    class="nav-link"   active-class="active-link">
             <span class="material-icons icon">article</span>
             <span v-if="!isCollapsed">Avisos</span>

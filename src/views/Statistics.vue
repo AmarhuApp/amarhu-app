@@ -13,9 +13,10 @@
             <button :class="{ 'active-tab': activeTab === 'mes' }" @click="activeTab = 'mes'">
               Resumen mensual
             </button>
-            <button :class="{ 'active-tab': activeTab === 'mesAnterior' }"
-                    @click="activeTab = 'mesAnterior'"
-                    :disabled="!showPreviousMonthTab">
+            <button
+                v-if="showPreviousMonthTab"
+                :class="{ 'active-tab': activeTab === 'mesAnterior' }"
+                @click="activeTab = 'mesAnterior'">
               Resumen mes pasado
             </button>
           </div>
@@ -198,8 +199,8 @@ export default {
       ].includes(this.userStore.user.role);
     },
     showPreviousMonthTab() {
-      // Mostrar la pestaña solo hasta el día 7 del mes actual
-      return new Date().getDate() <= 7;
+      const today = new Date().getDate();
+      return this.isDirectivo || today <= 7;
     }
   },
   watch: {
@@ -213,13 +214,17 @@ export default {
       }
     },
     activeTab(newTab) {
-      if (this.isEmpleado || this.isDirectivo) {  // 👈 agregas isDirectivo
-        this.$nextTick(() => {
-          if (newTab === 'semana') this.renderWeeklyChart();
-          if (newTab === 'mes') this.renderMonthlyChart();
-          if (newTab === 'mesAnterior') this.renderPreviousMonthChart();
-        });
-      }
+      this.$nextTick(() => {
+        if (this.isEmpleado) {
+          if (newTab === 'semana' && this.$refs.weeklyChart) this.renderWeeklyChart();
+          if (newTab === 'mes' && this.$refs.monthlyChart) this.renderMonthlyChart();
+          if (newTab === 'mesAnterior' && this.showPreviousMonthTab && this.$refs.previousMonthChart) this.renderPreviousMonthChart();
+        } else if (this.isDirectivo) {
+          if ((newTab === 'semana' || newTab === 'mes' || newTab === 'mesAnterior')) {
+            this.renderCharts(); // ya válida internamente sus refs
+          }
+        }
+      });
     },
     activeJefeTab(newTab) {
       if (this.jefeActivoDetalle) {
@@ -522,27 +527,27 @@ export default {
     },
     async fetchStatisticsData() {
       try {
-        if (this.isEmpleado && !this.isJefeRedaccion) {
+        if (this.isEmpleado) {
           const { data } = await axios.get(`${this.baseURL}/api/personal-videos/${this.userStore.user.id}`);
           this.videos = data;
+
+
           this.$nextTick(() => {
-            this.renderWeeklyChart();
-            this.renderMonthlyChart();
-            if (this.showPreviousMonthTab) {
-              this.renderPreviousMonthChart();
-            }
+            if (this.activeTab === 'semana') this.renderWeeklyChart();
+            if (this.activeTab === 'mes') this.renderMonthlyChart();
+            if (this.activeTab === 'mesAnterior' && this.showPreviousMonthTab) this.renderPreviousMonthChart();
           });
-        } else {
-          const resumen = await axios.get(`${this.baseURL}/api/production`);
+        } else if (this.isDirectivo) {
+          const [resumen, resumenMesPasado, allVideos, top] = await Promise.all([
+            axios.get(`${this.baseURL}/api/production`),
+            axios.get(`${this.baseURL}/api/production-last-month`),
+            axios.get(`${this.baseURL}/api/videos`),
+            axios.get(`${this.baseURL}/api/top-producers`)
+          ]);
+
           this.resumenProduccion = resumen.data;
-
-          const resumenMesPasado = await axios.get(`${this.baseURL}/api/production-last-month`);
           this.resumenProduccionMesPasado = resumenMesPasado.data;
-
-          const allVideos = await axios.get(`${this.baseURL}/api/videos`);
           this.videos = allVideos.data;
-
-          const top = await axios.get(`${this.baseURL}/api/top-producers`);
           this.topProducers = top.data;
 
           this.$nextTick(() => {
@@ -550,10 +555,9 @@ export default {
           });
         }
       } catch (error) {
-        console.error("Error cargando estadísticas:", error);
+        console.error("❌ Error al cargar estadísticas:", error);
       }
     },
-
     capitalize(text) {
       return text.charAt(0).toUpperCase() + text.slice(1);
     },
@@ -729,16 +733,7 @@ export default {
     }
   },
   created() {
-    this.fetchStatisticsData().then(() => {
-      // Forzar render inicial si corresponde
-      if (this.isEmpleado || this.isDirectivo) {
-        this.$nextTick(() => {
-          if (this.activeTab === 'semana') this.renderWeeklyChart();
-          if (this.activeTab === 'mes') this.renderMonthlyChart();
-          if (this.activeTab === 'mesAnterior') this.renderPreviousMonthChart();
-        });
-      }
-    });
+    this.fetchStatisticsData();
   }
 };
 </script>
