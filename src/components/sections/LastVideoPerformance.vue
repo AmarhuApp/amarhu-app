@@ -986,11 +986,12 @@ h3 {
 /* NUEVO: Estilos para el ranking de jefes */
 
 .ranking-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   margin-top: 20px;
 }
+
 
 /* Tarjeta para cada JR */
 .jr-card {

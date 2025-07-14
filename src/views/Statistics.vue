@@ -13,16 +13,17 @@
             <button :class="{ 'active-tab': activeTab === 'mes' }" @click="activeTab = 'mes'">
               Resumen mensual
             </button>
-            <button :class="{ 'active-tab': activeTab === 'mesAnterior' }"
-                    @click="activeTab = 'mesAnterior'"
-                    :disabled="!showPreviousMonthTab">
+            <button
+                v-if="showPreviousMonthTab"
+                :class="{ 'active-tab': activeTab === 'mesAnterior' }"
+                @click="activeTab = 'mesAnterior'">
               Resumen mes pasado
             </button>
           </div>
 
           <!-- Gráficas -->
           <div class="chart" v-if="activeTab === 'semana'">
-            <canvas :key="activeTab" ref="weeklyChart"></canvas>
+            <canvas :key="'weekly-' + activeTab" ref="weeklyChart"></canvas>
           </div>
           <div class="weekly-summary" v-if="activeTab === 'semana' && weekSummary">
             <p>
@@ -34,7 +35,7 @@
           </div>
 
           <div class="chart" v-if="activeTab === 'mes'">
-            <canvas :key="activeTab" ref="monthlyChart"></canvas>
+            <canvas :key="'monthly-' + activeTab" ref="monthlyChart"></canvas>
           </div>
           <div class="monthly-summary" v-if="activeTab === 'mes' && monthSummary">
             <p>
@@ -46,7 +47,7 @@
           </div>
 
           <div class="chart" v-if="activeTab === 'mesAnterior'">
-            <canvas :key="activeTab" ref="previousMonthChart"></canvas>
+            <canvas :key="'previousMonth-' + activeTab" ref="previousMonthChart"></canvas>
           </div>
           <div class="monthly-summary" v-if="activeTab === 'mesAnterior' && monthSummaryLastMonth">
             <p>
@@ -84,7 +85,7 @@
 
             <!-- Gráfica mensual del jefe activo -->
             <div v-if="jefeActivoDetalle" class="chart">
-              <canvas ref="jefeMonthlyChart"></canvas>
+              <canvas :key="'jefe-' + activeJefeTab" ref="jefeMonthlyChart"></canvas>
             </div>
           </div>
 
@@ -111,7 +112,7 @@
 
             <!-- Gráfica mensual del redactor activo -->
             <div v-if="redactorActivoDetalle" class="chart">
-              <canvas ref="redactorMonthlyChart"></canvas>
+              <canvas :key="'redactor-' + activeRedactorTab" ref="redactorMonthlyChart"></canvas>
             </div>
           </div>
         </div>
@@ -155,7 +156,9 @@ export default {
       userStore: useUserStore(),
       activeTab: "semana",
       baseURL: "https://api.pa-reporte.com",
-      maxVideosPorDiaPersonalizado: 12
+      maxVideosPorDiaPersonalizado: 12,
+      mostrarJefes: false,
+      tabs: []
     };
   },
   computed: {
@@ -196,8 +199,8 @@ export default {
       ].includes(this.userStore.user.role);
     },
     showPreviousMonthTab() {
-      // Mostrar la pestaña solo hasta el día 7 del mes actual
-      return new Date().getDate() <= 7;
+      const today = new Date().getDate();
+      return this.isDirectivo || today <= 7;
     }
   },
   watch: {
@@ -211,13 +214,17 @@ export default {
       }
     },
     activeTab(newTab) {
-      if (this.isEmpleado || this.isDirectivo) {  // 👈 agregas isDirectivo
-        this.$nextTick(() => {
-          if (newTab === 'semana') this.renderWeeklyChart();
-          if (newTab === 'mes') this.renderMonthlyChart();
-          if (newTab === 'mesAnterior') this.renderPreviousMonthChart();
-        });
-      }
+      this.$nextTick(() => {
+        if (this.isEmpleado) {
+          if (newTab === 'semana' && this.$refs.weeklyChart) this.renderWeeklyChart();
+          if (newTab === 'mes' && this.$refs.monthlyChart) this.renderMonthlyChart();
+          if (newTab === 'mesAnterior' && this.showPreviousMonthTab && this.$refs.previousMonthChart) this.renderPreviousMonthChart();
+        } else if (this.isDirectivo) {
+          if ((newTab === 'semana' || newTab === 'mes' || newTab === 'mesAnterior')) {
+            this.renderCharts(); // ya válida internamente sus refs
+          }
+        }
+      });
     },
     activeJefeTab(newTab) {
       if (this.jefeActivoDetalle) {
@@ -239,174 +246,217 @@ export default {
       const comision = typeof video.estimatedRevenue === 'number' ? video.estimatedRevenue : parseFloat(video.estimatedRevenue);
       return comision < 1.66452;
     },
-    renderJefeMonthlyChart() {
-      if (this.jefeMonthlyChartInstance) this.jefeMonthlyChartInstance.destroy();
-
-      const today = new Date();
-      const monthToUse = today.getMonth();
-      const yearToUse = today.getFullYear();
-      const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
-      const monthlyAdjusted = Array(daysInMonth).fill(0);
-
-      const videos = this.jefeActivoDetalle ? this.jefeActivoDetalle.videosProcesados : [];
-
-      videos.forEach((v) => {
-        const date = new Date(v.date);
-        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
-          const day = date.getDate() - 1;
-          monthlyAdjusted[day]++;
+    async renderJefeMonthlyChart() {
+      try {
+        if (this.jefeMonthlyChartInstance) {
+          this.jefeMonthlyChartInstance.destroy();
+          this.jefeMonthlyChartInstance = null;
         }
-      });
 
-      const chartOptions = this.getChartOptions("Videos producidos por día (Jefe de Redacción)", "Videos producidos");
+        await this.$nextTick();
 
-      this.jefeMonthlyChartInstance = new Chart(this.$refs.jefeMonthlyChart, {
-        type: "line",
-        data: {
-          labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
-          datasets: [{
-            label: "Videos por día",
-            data: monthlyAdjusted,
-            borderColor: "#6a1b9a",
-            backgroundColor: "rgba(106, 27, 154, 0.3)",
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: chartOptions
-      });
-    },
-    renderRedactorMonthlyChart() {
-      if (this.redactorMonthlyChartInstance) this.redactorMonthlyChartInstance.destroy();
+        const today = new Date();
+        const monthToUse = today.getMonth();
+        const yearToUse = today.getFullYear();
+        const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
+        const monthlyAdjusted = Array(daysInMonth).fill(0);
 
-      const today = new Date();
-      const monthToUse = today.getMonth();
-      const yearToUse = today.getFullYear();
-      const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
-      const monthlyAdjusted = Array(daysInMonth).fill(0);
+        const videos = this.jefeActivoDetalle?.videosProcesados || [];
 
-      const videos = this.redactorActivoDetalle ? this.redactorActivoDetalle.videosProcesados : [];
+        videos.forEach((v) => {
+          const date = new Date(v.date);
+          if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
+            const day = date.getDate() - 1;
+            monthlyAdjusted[day]++;
+          }
+        });
 
-      videos.forEach((v) => {
-        const date = new Date(v.date);
-        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
-          const day = date.getDate() - 1;
-          monthlyAdjusted[day]++;
+        const max = Math.max(...monthlyAdjusted);
+        if (max > this.maxVideosPorDiaPersonalizado) {
+          this.maxVideosPorDiaPersonalizado = max;
         }
-      });
 
-      const chartOptions = this.getChartOptions("Videos producidos por día (Redactor)", "Videos producidos");
+        const chartOptions = this.getChartOptions("Videos producidos por día (Jefe de Redacción)", "Videos producidos");
 
-      this.redactorMonthlyChartInstance = new Chart(this.$refs.redactorMonthlyChart, {
-        type: "line",
-        data: {
-          labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
-          datasets: [{
-            label: "Videos por día",
-            data: monthlyAdjusted,
-            borderColor: "#ff9900",
-            backgroundColor: "rgba(255, 153, 0, 0.3)",
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: chartOptions
-      });
-    },
-    renderPreviousMonthChart() {
-      if (this.previousMonthChartInstance) this.previousMonthChartInstance.destroy();
-
-      const today = new Date();
-      let monthToUse = today.getMonth() - 1;
-      let yearToUse = today.getFullYear();
-      if (monthToUse < 0) {
-        monthToUse = 11;
-        yearToUse -= 1;
+        if (this.$refs.jefeMonthlyChart) {
+          this.jefeMonthlyChartInstance = new Chart(this.$refs.jefeMonthlyChart, {
+            type: "line",
+            data: {
+              labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
+              datasets: [{
+                label: "Videos por día",
+                data: monthlyAdjusted,
+                borderColor: "#6a1b9a",
+                backgroundColor: "rgba(106, 27, 154, 0.3)",
+                fill: true,
+                tension: 0.3
+              }]
+            },
+            options: chartOptions
+          });
+        }
+      } catch (error) {
+        console.error("Error en renderJefeMonthlyChart:", error);
       }
-
-      const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
-      const monthlyAdjusted = Array(daysInMonth).fill(0);
-
-      let totalMes = 0;
-      let caidosMes = 0;
-      let comisionMes = 0;
-
-      this.videos.forEach((v) => {
-        const date = new Date(v.date);
-        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
-          const day = date.getDate() - 1;
-          monthlyAdjusted[day]++;
-          totalMes++;
-          const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
-          if (this.isCaido(v)) caidosMes++;
-          if (!this.isCaido(v)) comisionMes += comision;
+    },
+    async renderRedactorMonthlyChart() {
+      try {
+        if (this.redactorMonthlyChartInstance) {
+          this.redactorMonthlyChartInstance.destroy();
+          this.redactorMonthlyChartInstance = null;
         }
-      });
 
-      // Actualizar umbral si es necesario
-      const maxEnMesAnterior = Math.max(...monthlyAdjusted);
-      if (maxEnMesAnterior > this.maxVideosPorDiaPersonalizado) {
-        this.maxVideosPorDiaPersonalizado = maxEnMesAnterior;
+        await this.$nextTick();
+
+        const today = new Date();
+        const monthToUse = today.getMonth();
+        const yearToUse = today.getFullYear();
+        const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
+        const monthlyAdjusted = Array(daysInMonth).fill(0);
+
+        const videos = this.redactorActivoDetalle?.videosProcesados || [];
+
+        videos.forEach((v) => {
+          const date = new Date(v.date);
+          if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
+            const day = date.getDate() - 1;
+            monthlyAdjusted[day]++;
+          }
+        });
+
+        const max = Math.max(...monthlyAdjusted);
+        if (max > this.maxVideosPorDiaPersonalizado) {
+          this.maxVideosPorDiaPersonalizado = max;
+        }
+
+        const chartOptions = this.getChartOptions("Videos producidos por día (Redactor)", "Videos producidos");
+
+        if (this.$refs.redactorMonthlyChart) {
+          this.redactorMonthlyChartInstance = new Chart(this.$refs.redactorMonthlyChart, {
+            type: "line",
+            data: {
+              labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
+              datasets: [{
+                label: "Videos por día",
+                data: monthlyAdjusted,
+                borderColor: "#ff9900",
+                backgroundColor: "rgba(255, 153, 0, 0.3)",
+                fill: true,
+                tension: 0.3
+              }]
+            },
+            options: chartOptions
+          });
+        }
+      } catch (error) {
+        console.error("Error en renderRedactorMonthlyChart:", error);
       }
+    },
+    async renderPreviousMonthChart() {
+      try {
+        if (this.previousMonthChartInstance) {
+          this.previousMonthChartInstance.destroy();
+          this.previousMonthChartInstance = null;
+        }
 
-      const chartOptions = this.getChartOptions("Videos producidos por día del mes pasado", "Videos producidos");
+        await this.$nextTick();
 
-      this.previousMonthChartInstance = new Chart(this.$refs.previousMonthChart, {
-        type: "line",
-        data: {
-          labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
-          datasets: [{
-            label: "Videos por día",
-            data: monthlyAdjusted,
-            borderColor: "#e76f51",
-            backgroundColor: "rgba(231, 111, 81, 0.3)",
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: chartOptions
-      });
+        const today = new Date();
+        let monthToUse = today.getMonth() - 1;
+        let yearToUse = today.getFullYear();
+        if (monthToUse < 0) {
+          monthToUse = 11;
+          yearToUse -= 1;
+        }
 
-      this.monthSummaryLastMonth = null;
-      this.$nextTick(() => {
+        const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
+        const monthlyAdjusted = Array(daysInMonth).fill(0);
+
+        let totalMes = 0;
+        let caidosMes = 0;
+        let comisionMes = 0;
+
+        this.videos.forEach((v) => {
+          const date = new Date(v.date);
+          if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
+            const day = date.getDate() - 1;
+            monthlyAdjusted[day]++;
+            totalMes++;
+            const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
+            if (this.isCaido(v)) caidosMes++;
+            else comisionMes += comision;
+          }
+        });
+
+        const max = Math.max(...monthlyAdjusted);
+        if (max > this.maxVideosPorDiaPersonalizado) {
+          this.maxVideosPorDiaPersonalizado = max;
+        }
+
+        const chartOptions = this.getChartOptions("Videos producidos por día del mes pasado", "Videos producidos");
+
+        if (this.$refs.previousMonthChart) {
+          this.previousMonthChartInstance = new Chart(this.$refs.previousMonthChart, {
+            type: "line",
+            data: {
+              labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
+              datasets: [{
+                label: "Videos por día",
+                data: monthlyAdjusted,
+                borderColor: "#e76f51",
+                backgroundColor: "rgba(231, 111, 81, 0.3)",
+                fill: true,
+                tension: 0.3
+              }]
+            },
+            options: chartOptions
+          });
+        }
+
         this.monthSummaryLastMonth = {
           total: totalMes,
           caidos: caidosMes,
           comision: comisionMes.toFixed(2),
           mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
         };
-      });
+      } catch (error) {
+        console.error("Error en renderPreviousMonthChart:", error);
+      }
     },
     async fetchJefesRedaccion() {
-      this.jefesRedaccionDetalles = [];
-
       try {
         const response = await axios.get(`${this.baseURL}/api/user`);
 
-        // Filtrar solo los usuarios con rol JEFE_REDACCION
         const jefesRedaccion = response.data.filter(user =>
-            user.role === "JEFE_REDACCION" &&
-            user.codigo // aseguramos que tenga código
+            user.role === "JEFE_REDACCION" && user.codigo
         );
 
         console.log("✅ Jefes de Redacción encontrados:", jefesRedaccion);
 
-        // Por cada Jefe de Redacción, obtener sus videos personales
+        // Evitar recargar si ya están los mismos jefes
+        const mismos = jefesRedaccion.length === this.jefesRedaccionDetalles.length &&
+            jefesRedaccion.every(jefe => this.jefesRedaccionDetalles.some(d => d.codigo === jefe.codigo));
+
+        if (mismos) {
+          // Si ya están cargados, ocultamos (toggle)
+          this.jefesRedaccionDetalles = [];
+          this.activeJefeTab = null;
+          return;
+        }
+
+        // Si son diferentes o no están cargados aún
+        this.jefesRedaccionDetalles = [];
+
         for (const jefe of jefesRedaccion) {
           try {
             const resVideos = await axios.get(`${this.baseURL}/api/personal-videos/${jefe.id}`);
 
-            // Procesar videos (igual que en los redactores)
             const videosProcesados = resVideos.data.map((item) => {
               const date = new Date(item.date);
               const fechaPublicacion = date.toLocaleDateString("es-PE");
-              return {
-                ...item,
-                fechaPublicacion
-              };
+              return { ...item, fechaPublicacion };
             });
 
-            // Agregar al array de detalles
             this.jefesRedaccionDetalles.push({
               codigo: jefe.codigo,
               nombre: jefe.name,
@@ -414,17 +464,17 @@ export default {
             });
 
           } catch (error) {
-            console.error(`Error al obtener videos de ${jefe.name}:`, error);
+            console.error(`❌ Error al obtener videos de ${jefe.name}:`, error);
           }
         }
 
-        // Si es la primera vez, selecciona el primero como activo
+        // Activar primero por defecto si hay alguno
         if (this.jefesRedaccionDetalles.length > 0) {
           this.activeJefeTab = this.jefesRedaccionDetalles[0].codigo;
         }
 
       } catch (error) {
-        console.error("Error al obtener usuarios (jefes de redacción):", error);
+        console.error("❌ Error al obtener usuarios (jefes de redacción):", error);
       }
     },
     async fetchRedactoresGrupo() {
@@ -477,27 +527,27 @@ export default {
     },
     async fetchStatisticsData() {
       try {
-        if (this.isEmpleado && !this.isJefeRedaccion) {
+        if (this.isEmpleado) {
           const { data } = await axios.get(`${this.baseURL}/api/personal-videos/${this.userStore.user.id}`);
           this.videos = data;
+
+
           this.$nextTick(() => {
-            this.renderWeeklyChart();
-            this.renderMonthlyChart();
-            if (this.showPreviousMonthTab) {
-              this.renderPreviousMonthChart();
-            }
+            if (this.activeTab === 'semana') this.renderWeeklyChart();
+            if (this.activeTab === 'mes') this.renderMonthlyChart();
+            if (this.activeTab === 'mesAnterior' && this.showPreviousMonthTab) this.renderPreviousMonthChart();
           });
-        } else {
-          const resumen = await axios.get(`${this.baseURL}/api/production`);
+        } else if (this.isDirectivo) {
+          const [resumen, resumenMesPasado, allVideos, top] = await Promise.all([
+            axios.get(`${this.baseURL}/api/production`),
+            axios.get(`${this.baseURL}/api/production-last-month`),
+            axios.get(`${this.baseURL}/api/videos`),
+            axios.get(`${this.baseURL}/api/top-producers`)
+          ]);
+
           this.resumenProduccion = resumen.data;
-
-          const resumenMesPasado = await axios.get(`${this.baseURL}/api/production-last-month`);
           this.resumenProduccionMesPasado = resumenMesPasado.data;
-
-          const allVideos = await axios.get(`${this.baseURL}/api/videos`);
           this.videos = allVideos.data;
-
-          const top = await axios.get(`${this.baseURL}/api/top-producers`);
           this.topProducers = top.data;
 
           this.$nextTick(() => {
@@ -505,10 +555,9 @@ export default {
           });
         }
       } catch (error) {
-        console.error("Error cargando estadísticas:", error);
+        console.error("❌ Error al cargar estadísticas:", error);
       }
     },
-
     capitalize(text) {
       return text.charAt(0).toUpperCase() + text.slice(1);
     },
@@ -535,154 +584,156 @@ export default {
       };
     },
 
-    renderWeeklyChart() {
-      if (this.weeklyChartInstance) this.weeklyChartInstance.destroy();
-
-      const weekdayNames = ["D", "L", "M", "M", "J", "V", "S"];
-      const today = new Date();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-
-      const daysLabels = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(startOfWeek);
-        date.setDate(startOfWeek.getDate() + i);
-        const weekday = weekdayNames[date.getDay()];
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${weekday}-${day}`;
-      });
-
-      const weekly = Array(7).fill(0);
-      const now = new Date();
-      startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-
-      let totalVideos = 0;
-      let videosCaidos = 0;
-      let comisionAcumulada = 0;
-
-      this.videos.forEach((v) => {
-        const date = new Date(v.date);
-        const dayIndex = (date.getDay() + 6) % 7;
-        const inThisWeek = date >= startOfWeek && date <= now;
-
-        if (inThisWeek) {
-          weekly[dayIndex]++;
-          totalVideos++;
-          const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
-          if (this.isCaido(v)) videosCaidos++;
-          if (!this.isCaido(v)) comisionAcumulada += comision;
+    async renderWeeklyChart() {
+      try {
+        if (this.weeklyChartInstance) {
+          this.weeklyChartInstance.destroy();
+          this.weeklyChartInstance = null;
         }
-      });
 
-      // Actualizar umbral si es necesario
-      const maxEnSemana = Math.max(...weekly);
-      if (maxEnSemana > this.maxVideosPorDiaPersonalizado) {
-        this.maxVideosPorDiaPersonalizado = maxEnSemana;
-      }
+        await this.$nextTick(); // Asegura que el DOM esté listo
 
-      const chartOptions = this.getChartOptions("Videos producidos por día de la semana", "Videos producidos");
+        const weekdayNames = ["D", "L", "M", "M", "J", "V", "S"];
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 
-      this.weeklyChartInstance = new Chart(this.$refs.weeklyChart, {
-        type: "line",
-        data: {
-          labels: daysLabels,
-          datasets: [{
-            label: "Videos por día",
-            data: weekly,
-            borderColor: "#f4a261",
-            backgroundColor: "rgba(244, 162, 97, 0.3)",
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: chartOptions
-      });
+        const daysLabels = Array.from({ length: 7 }, (_, i) => {
+          const date = new Date(startOfWeek);
+          date.setDate(startOfWeek.getDate() + i);
+          const weekday = weekdayNames[date.getDay()];
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${weekday}-${day}`;
+        });
 
-      this.weekSummary = null;
-      this.$nextTick(() => {
+        const weekly = Array(7).fill(0);
+        const now = new Date();
+
+        let totalVideos = 0;
+        let videosCaidos = 0;
+        let comisionAcumulada = 0;
+
+        this.videos.forEach((v) => {
+          const date = new Date(v.date);
+          const dayIndex = (date.getDay() + 6) % 7;
+          const inThisWeek = date >= startOfWeek && date <= now;
+
+          if (inThisWeek) {
+            weekly[dayIndex]++;
+            totalVideos++;
+            const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
+            if (this.isCaido(v)) videosCaidos++;
+            else comisionAcumulada += comision;
+          }
+        });
+
+        const maxEnSemana = Math.max(...weekly);
+        if (maxEnSemana > this.maxVideosPorDiaPersonalizado) {
+          this.maxVideosPorDiaPersonalizado = maxEnSemana;
+        }
+
+        const chartOptions = this.getChartOptions("Videos producidos por día de la semana", "Videos producidos");
+
+        if (this.$refs.weeklyChart) {
+          this.weeklyChartInstance = new Chart(this.$refs.weeklyChart, {
+            type: "line",
+            data: {
+              labels: daysLabels,
+              datasets: [{
+                label: "Videos por día",
+                data: weekly,
+                borderColor: "#f4a261",
+                backgroundColor: "rgba(244, 162, 97, 0.3)",
+                fill: true,
+                tension: 0.3
+              }]
+            },
+            options: chartOptions
+          });
+        }
+
         this.weekSummary = {
           total: totalVideos,
           caidos: videosCaidos,
           comision: comisionAcumulada.toFixed(2),
           mes: new Date().toLocaleDateString("es-PE", { month: "long", year: "numeric" })
         };
-      });
-    },
-
-    renderMonthlyChart() {
-      if (this.monthlyChartInstance) this.monthlyChartInstance.destroy();
-
-      const today = new Date();
-      const monthToUse = today.getMonth();
-      const yearToUse = today.getFullYear();
-      const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
-      const monthlyAdjusted = Array(daysInMonth).fill(0);
-
-      let totalMes = 0;
-      let caidosMes = 0;
-      let comisionMes = 0;
-
-      this.videos.forEach((v) => {
-        const date = new Date(v.date);
-        if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
-          const day = date.getDate() - 1;
-          monthlyAdjusted[day]++;
-          totalMes++;
-          const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
-          if (this.isCaido(v)) caidosMes++;
-          if (!this.isCaido(v)) comisionMes += comision;
-        }
-      });
-
-      // Actualizar umbral si es necesario
-      const maxEnMes = Math.max(...monthlyAdjusted);
-      if (maxEnMes > this.maxVideosPorDiaPersonalizado) {
-        this.maxVideosPorDiaPersonalizado = maxEnMes;
+      } catch (error) {
+        console.error("Error renderizando gráfico semanal:", error);
       }
+    },
+    async renderMonthlyChart() {
+      try {
+        if (this.monthlyChartInstance) {
+          this.monthlyChartInstance.destroy();
+          this.monthlyChartInstance = null;
+        }
 
-      const chartOptions = this.getChartOptions("Videos producidos por día de este mes", "Videos producidos");
+        await this.$nextTick();
 
-      this.monthlyChartInstance = new Chart(this.$refs.monthlyChart, {
-        type: "line",
-        data: {
-          labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
-          datasets: [{
-            label: "Videos por día",
-            data: monthlyAdjusted,
-            borderColor: "#2a9d8f",
-            backgroundColor: "rgba(42, 157, 143, 0.3)",
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: chartOptions
-      });
+        const today = new Date();
+        const monthToUse = today.getMonth();
+        const yearToUse = today.getFullYear();
+        const daysInMonth = new Date(yearToUse, monthToUse + 1, 0).getDate();
+        const monthlyAdjusted = Array(daysInMonth).fill(0);
 
-      this.monthSummary = null;
-      this.$nextTick(() => {
+        let totalMes = 0;
+        let caidosMes = 0;
+        let comisionMes = 0;
+
+        this.videos.forEach((v) => {
+          const date = new Date(v.date);
+          if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
+            const day = date.getDate() - 1;
+            monthlyAdjusted[day]++;
+            totalMes++;
+            const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
+            if (this.isCaido(v)) caidosMes++;
+            else comisionMes += comision;
+          }
+        });
+
+        const maxEnMes = Math.max(...monthlyAdjusted);
+        if (maxEnMes > this.maxVideosPorDiaPersonalizado) {
+          this.maxVideosPorDiaPersonalizado = maxEnMes;
+        }
+
+        const chartOptions = this.getChartOptions("Videos producidos por día de este mes", "Videos producidos");
+
+        if (this.$refs.monthlyChart) {
+          this.monthlyChartInstance = new Chart(this.$refs.monthlyChart, {
+            type: "line",
+            data: {
+              labels: monthlyAdjusted.map((_, i) => `${(i + 1).toString().padStart(2, "0")}`),
+              datasets: [{
+                label: "Videos por día",
+                data: monthlyAdjusted,
+                borderColor: "#2a9d8f",
+                backgroundColor: "rgba(42, 157, 143, 0.3)",
+                fill: true,
+                tension: 0.3
+              }]
+            },
+            options: chartOptions
+          });
+        }
+
         this.monthSummary = {
           total: totalMes,
           caidos: caidosMes,
           comision: comisionMes.toFixed(2),
           mes: new Date(yearToUse, monthToUse).toLocaleDateString("es-PE", { month: "long", year: "numeric" })
         };
-      });
+      } catch (error) {
+        console.error("Error renderizando gráfico mensual:", error);
+      }
     },
-
     renderCharts() {
       // directivos y otros roles
     }
   },
   created() {
-    this.fetchStatisticsData().then(() => {
-      // Forzar render inicial si corresponde
-      if (this.isEmpleado || this.isDirectivo) {
-        this.$nextTick(() => {
-          if (this.activeTab === 'semana') this.renderWeeklyChart();
-          if (this.activeTab === 'mes') this.renderMonthlyChart();
-          if (this.activeTab === 'mesAnterior') this.renderPreviousMonthChart();
-        });
-      }
-    });
+    this.fetchStatisticsData();
   }
 };
 </script>
