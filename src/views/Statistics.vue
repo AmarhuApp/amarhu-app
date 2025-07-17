@@ -246,6 +246,10 @@ export default {
       const comision = typeof video.estimatedRevenue === 'number' ? video.estimatedRevenue : parseFloat(video.estimatedRevenue);
       return comision < 1.66452;
     },
+    isCaidoDirectivo(video) {
+      const comision = typeof video.estimatedRevenue === 'number' ? video.estimatedRevenue : parseFloat(video.estimatedRevenue);
+      return comision < 7.8;
+    },
     async renderJefeMonthlyChart() {
       try {
         if (this.jefeMonthlyChartInstance) {
@@ -729,7 +733,15 @@ export default {
       }
     },
     renderCharts() {
-      // directivos y otros roles
+      if (this.activeTab === 'semana' && this.$refs.weeklyChart) {
+        this.renderWeeklyChart();
+      }
+      if (this.activeTab === 'mes' && this.$refs.monthlyChart) {
+        this.renderMonthlyChart();
+      }
+      if (this.activeTab === 'mesAnterior' && this.showPreviousMonthTab && this.$refs.previousMonthChart) {
+        this.renderPreviousMonthChart();
+      }
     }
   },
   created() {
