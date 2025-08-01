@@ -639,7 +639,6 @@ export default {
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         if (this.chartInstance) this.chartInstance.destroy();
-
         this.chartInstance = new Chart(ctx, {
           type: "radar",
           data: {
