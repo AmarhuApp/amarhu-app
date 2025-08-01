@@ -48,7 +48,6 @@
 
           <!-- Condicional para empleados -->
           <template v-if="isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">
-            <th>Hora</th>
             <th>Visualización</th>
             <th>Monto Redactor</th>
             <th>Tiempo de Vista (s)</th>
@@ -89,7 +88,6 @@
 
           <!-- Para empleados -->
           <template v-else>
-            <td>{{ item.horaPublicacion }}</td>
             <td>{{ item.views }}</td>
             <td>
                 <span v-if="item.estimatedRevenue">
