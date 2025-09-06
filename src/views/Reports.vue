@@ -45,6 +45,8 @@
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Revenue Estimado</th>
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">WVD</th>
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">RPM</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Impacto</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Color</th>
 
           <!-- Condicional para empleados -->
           <template v-if="isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">
@@ -84,6 +86,20 @@
             <td>{{ item.estimatedRevenue }}</td>
             <td>{{ item.averageViewDuration }}</td>
             <td>{{ item.rpm }}</td>
+
+
+            <td>{{ item.categoria }}</td>
+            <td>
+              <div
+                  :style="{
+                    backgroundColor: item.colorCategoria,
+                    width: '50px',
+                    height: '20px',
+                    borderRadius: '4px',
+                    margin: 'auto'
+                  }"
+              ></div>
+            </td>
           </template>
 
           <!-- Para empleados -->
@@ -352,6 +368,7 @@ export default {
       this.fetchCaidos();
       this.fetchPagos();
       this.fetchRedactoresPorGrupoJefe();
+      this.fetchDirectivosVideos();
     } else {
       console.warn("⚠️ Role no manejado:", this.userStore.user.role);
     }
@@ -381,6 +398,49 @@ export default {
           return videoMonth === currentMonth && videoYear === currentYear;
         }
       });
+    },
+    computeImpacto(rawRpm) {
+      const base = rawRpm ? parseFloat(rawRpm) : 0;
+      const rpm = parseFloat((base * 0.9).toFixed(2)); // mismo -10%
+      let categoria = "Sin Clasificación";
+      let colorCategoria = "#BDC3C7"; // gris
+
+      if (rpm < 0.95) { categoria = "Extremadamente Bajo"; colorCategoria = "#C0392B"; }
+      else if (rpm <= 1.41) { categoria = "Bajo Impacto"; colorCategoria = "#E74C3C"; }
+      else if (rpm <= 1.92) { categoria = "Buen Impacto"; colorCategoria = "#F1C40F"; }
+      else if (rpm <= 2.41) { categoria = "Alto Impacto"; colorCategoria = "#3498DB"; }
+      else { categoria = "Impacto Sobresaliente"; colorCategoria = "#27AE60"; }
+
+      return { rpm, categoria, colorCategoria };
+    },
+
+    enrichVideo(item) {
+      const { rpm, categoria, colorCategoria } = this.computeImpacto(item.rpm);
+      const fecha = new Date(item.date);
+      const fechaPublicacion = fecha.toLocaleDateString("es-PE");
+      const horaPublicacion  = fecha.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+      return {
+        ...item,
+        rpm,                // sustituye rpm crudo por el ajustado
+        categoria,
+        colorCategoria,
+        fechaPublicacion,
+        horaPublicacion,
+      };
+    },
+
+    async fetchDirectivosVideos() {
+      try {
+        const { data } = await axios.get("https://api.pa-reporte.com/api/videos");
+        const mapped = this.filterByDateRange(data).map(this.enrichVideo);
+        this.videos = mapped;
+        if (this.currentFilter === "videos" || this.currentFilter === "caidos") {
+          this.filteredData = mapped;
+        }
+      } catch (e) {
+        console.error("❌ Error al obtener videos (directivos):", e);
+      }
     },
     async fetchDetallesRedactores() {
       this.redactoresDetalles = [];
