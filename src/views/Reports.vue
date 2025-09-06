@@ -41,15 +41,15 @@
           <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">ID</th>
           <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Titulo</th>
           <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Fecha</th>
-          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Views</th>
-          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Revenue Estimado</th>
-          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">WVD</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Visualizaciones</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Ganancia del Video</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Tiempo de Vista (s)</th>
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">RPM</th>
 
           <!-- Condicional para empleados -->
           <template v-if="isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">
             <th>Visualización</th>
-            <th>Monto Redactor</th>
+            <th>Comisión del Video</th>
             <th>Tiempo de Vista (s)</th>
             <th>RPM Real</th>
             <th>Categoría</th>
@@ -60,8 +60,8 @@
           <th v-if="currentFilter === 'pagos'">Nombre</th>
           <th v-if="currentFilter === 'pagos'">Videos Totales</th>
           <th v-if="currentFilter === 'pagos'">Videos Caídos</th>
-          <th v-if="currentFilter === 'pagos'">Ganancia Total</th>
-          <th v-if="currentFilter === 'pagos'">Ganancia Total menos Impuestos</th>
+          <th v-if="currentFilter === 'pagos'">Generado Total</th>
+          <th v-if="currentFilter === 'pagos'">Generado Total menos Impuestos</th>
           <th v-if="currentFilter === 'pagos'">Ganancia después de Caídos e Impuestos</th>
           <th v-if="currentFilter === 'pagos'">Comisión $</th>
           <th v-if="currentFilter === 'pagos'">Comisión S/.</th>
