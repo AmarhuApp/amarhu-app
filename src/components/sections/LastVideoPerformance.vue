@@ -132,7 +132,7 @@
           <p v-else>Cargando datos...</p>
 
           <!-- Radar chart debajo (opcional) -->
-          <div ref="chart" class="chart-container" style="margin-top: 20px;">
+          <!--<div ref="chart" class="chart-container" style="margin-top: 20px;">
             <h3>Comparación de Producción</h3>
             <canvas id="radarChart"></canvas>
             <div class="button-container">
@@ -140,7 +140,7 @@
                 <span>Go Stats</span>
               </button>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>
