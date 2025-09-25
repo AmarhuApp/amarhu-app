@@ -248,7 +248,7 @@ export default {
     },
     isCaidoDirectivo(video) {
       const comision = typeof video.estimatedRevenue === 'number' ? video.estimatedRevenue : parseFloat(video.estimatedRevenue);
-      return comision < 7.8;
+      return comision < 10;
     },
     async renderJefeMonthlyChart() {
       try {
@@ -380,6 +380,8 @@ export default {
         let caidosMes = 0;
         let comisionMes = 0;
 
+        const caidoFn = this.isDirectivo ? this.isCaidoDirectivo : this.isCaido;
+
         this.videos.forEach((v) => {
           const date = new Date(v.date);
           if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
@@ -387,7 +389,7 @@ export default {
             monthlyAdjusted[day]++;
             totalMes++;
             const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
-            if (this.isCaido(v)) caidosMes++;
+            if (caidoFn.call(this, v)) caidosMes++;
             else comisionMes += comision;
           }
         });
@@ -617,6 +619,8 @@ export default {
         let videosCaidos = 0;
         let comisionAcumulada = 0;
 
+        const caidoFn = this.isDirectivo ? this.isCaidoDirectivo : this.isCaido;
+
         this.videos.forEach((v) => {
           const date = new Date(v.date);
           const dayIndex = (date.getDay() + 6) % 7;
@@ -626,7 +630,7 @@ export default {
             weekly[dayIndex]++;
             totalVideos++;
             const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
-            if (this.isCaido(v)) videosCaidos++;
+            if (caidoFn.call(this, v)) videosCaidos++;
             else comisionAcumulada += comision;
           }
         });
@@ -685,6 +689,9 @@ export default {
         let caidosMes = 0;
         let comisionMes = 0;
 
+        // <-- seleccionamos la función de "caído" según el rol
+        const caidoFn = this.isDirectivo ? this.isCaidoDirectivo : this.isCaido;
+
         this.videos.forEach((v) => {
           const date = new Date(v.date);
           if (date.getMonth() === monthToUse && date.getFullYear() === yearToUse) {
@@ -692,7 +699,8 @@ export default {
             monthlyAdjusted[day]++;
             totalMes++;
             const comision = typeof v.estimatedRevenue === 'number' ? v.estimatedRevenue : parseFloat(v.estimatedRevenue) || 0;
-            if (this.isCaido(v)) caidosMes++;
+            // usamos la función elegida. .call(this, v) por si la función usa `this`
+            if (caidoFn.call(this, v)) caidosMes++;
             else comisionMes += comision;
           }
         });
