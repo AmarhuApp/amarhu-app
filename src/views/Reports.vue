@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <!-- Resumen -->
+
     <div class="summary">
       <span>Total: {{ filteredData.length }}</span>
     </div>
