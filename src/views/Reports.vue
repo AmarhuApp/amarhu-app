@@ -41,10 +41,13 @@
           <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">ID</th>
           <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Titulo</th>
           <th v-if="currentFilter === 'videos' || currentFilter === 'caidos'">Fecha</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Hora</th>
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Visualizaciones</th>
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Ganancia del Video</th>
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Tiempo de Vista (s)</th>
           <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">RPM</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Categoría</th>
+          <th v-if="!isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">Color</th>
 
           <!-- Condicional para empleados -->
           <template v-if="isEmpleado && (currentFilter === 'videos' || currentFilter === 'caidos')">
@@ -77,13 +80,33 @@
           <td>{{ item.videoId }}</td>
           <td>{{ item.title }}</td>
           <td>{{ item.fechaPublicacion }}</td>
+          <td>{{ item.horaPublicacion }}</td>
 
           <!-- Normal para directivos -->
           <template v-if="!isEmpleado">
             <td>{{ item.views }}</td>
-            <td>{{ item.estimatedRevenue }}</td>
-            <td>{{ item.averageViewDuration }}</td>
+            <td>
+    <span v-if="item.estimatedRevenue !== undefined && item.estimatedRevenue !== null">
+      ${{ Number(item.estimatedRevenue).toFixed(4) }}
+    </span>
+              <span v-else>-</span>
+            </td>            <td>{{ item.averageViewDuration }}</td>
             <td>{{ item.rpm }}</td>
+            <!-- Categoría -->
+            <td>{{ item.categoria || 'Sin Clasificación' }}</td>
+
+            <!-- Color -->
+            <td>
+              <div
+                  :style="{
+      backgroundColor: item.colorCategoria || '#BDC3C7',
+      width: '50px',
+      height: '20px',
+      borderRadius: '4px',
+      margin: 'auto'
+    }"
+              ></div>
+            </td>
           </template>
 
           <!-- Para empleados -->
@@ -96,19 +119,20 @@
               <span v-else>-</span>
             </td>
             <td>{{ item.averageViewDuration }}</td>
-            <td>{{ item.rpm || '-' }}</td>
-            <td>{{ item.categoria }}</td>
+            <td>{{ item.rpm != null ? Number(item.rpm).toFixed(2) : '-' }}</td>
+            <td>{{ item.categoria || 'Sin Clasificación' }}</td>
+
+            <!-- Nueva columna: Color -->
             <td>
               <div
                   :style="{
-                backgroundColor: item.colorCategoria,
-                width: '50px',
-                height: '20px',
-                borderRadius: '4px',
-                margin: 'auto'
-              }"
+        backgroundColor: item.colorCategoria || '#BDC3C7',
+        width: '50px',
+        height: '20px',
+        borderRadius: '4px',
+        margin: 'auto'
+      }"
               ></div>
-
             </td>
           </template>
         </tr>
@@ -454,9 +478,16 @@ export default {
                 };
               });
 
-              // Agrega redactor y sus videos al grupo correspondiente
+              // 🔹 Calcular comisión total del mes para este redactor
+              const totalComisionMes = videosProcesados.reduce(
+                  (acc, v) => acc + v.montoEmpleado,
+                  0
+              );
+
+              // Agrega redactor con su total mensual y videos
               this.grupoRedactores[jefe.codigo].redactores.push({
                 ...redactor,
+                totalComisionMes,
                 videosProcesados,
               });
 
@@ -622,14 +653,64 @@ export default {
         const response = await axios.get("https://api.pa-reporte.com/api/videos");
 
         this.videos = this.filterByDateRange(response.data)
-            // ordenar por fecha descendente (más reciente primero)
             .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .map(item => {
+            .map((item) => {
               const fechaOriginal = new Date(item.date);
               const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+              const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
+
+              const diasDeVigencia = Math.floor(
+                  (new Date() - fechaOriginal) / (1000 * 60 * 60 * 24)
+              );
+
+              const montoEmpleado = Number(item.estimatedRevenue);
+              const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+              const rpm = parseFloat((rawRpm * 0.9).toFixed(2)); // Aplica reducción del 10%
+
+              let categoria = "Sin Clasificación";
+              let colorCategoria = "#BDC3C7"; // Gris por defecto
+
+              // 🟢 Nueva condición
+              if (montoEmpleado === 0) {
+                if (diasDeVigencia <= 2) {
+                  categoria = "Sin Categoría (Pendiente)";
+                  colorCategoria = "#7F8C8D"; // Gris oscuro
+                } else {
+                  categoria = "Caído";
+                  colorCategoria = "#000000"; // Negro
+                }
+              } else {
+                // Clasificación normal por RPM
+                if (rpm < 0.95) {
+                  categoria = "Extremadamente Bajo";
+                  colorCategoria = "#C0392B";
+                } else if (rpm <= 1.41) {
+                  categoria = "Bajo Impacto";
+                  colorCategoria = "#E74C3C";
+                } else if (rpm <= 1.92) {
+                  categoria = "Buen Impacto";
+                  colorCategoria = "#F1C40F";
+                } else if (rpm <= 2.41) {
+                  categoria = "Alto Impacto";
+                  colorCategoria = "#3498DB";
+                } else if (rpm > 2.41) {
+                  categoria = "Impacto Sobresaliente";
+                  colorCategoria = "#27AE60";
+                }
+              }
+
               return {
                 ...item,
-                fechaPublicacion
+                montoEmpleado,
+                categoria,
+                colorCategoria,
+                fechaPublicacion,
+                horaPublicacion,
+                rpm,
               };
             });
 
@@ -643,7 +724,25 @@ export default {
     async fetchCaidos() {
       try {
         const response = await axios.get("https://api.pa-reporte.com/api/caidos");
-        this.caidos = this.filterByDateRange(response.data);
+
+        this.caidos = this.filterByDateRange(response.data)
+            .sort((a, b) => new Date(b.date) - new Date(a.date)) // opcional: ordena
+            .map((item) => {
+              const fechaOriginal = new Date(item.date);
+              const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+              const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
+
+              return {
+                ...item,
+                fechaPublicacion,
+                horaPublicacion,
+              };
+            });
+
         if (this.currentFilter === "caidos") {
           this.filteredData = this.caidos;
         }
