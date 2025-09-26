@@ -329,12 +329,6 @@ export default {
       }
       return null;
     },
-    redactoresFiltradosPagos() {
-      if (this.codigoGrupoJefe && this.pagos.length > 0) {
-        return this.pagos.filter(p => p.codigo.startsWith(this.codigoGrupoJefe));
-      }
-      return [];
-    },
     activeRedactor() {
       if (!this.jefeSeleccionado || !this.activeRedactorTab) return null;
       const grupo = this.grupoRedactores[this.jefeSeleccionado.codigo];
@@ -381,69 +375,6 @@ export default {
           return videoMonth === currentMonth && videoYear === currentYear;
         }
       });
-    },
-    async fetchDetallesRedactores() {
-      this.redactoresDetalles = [];
-
-      for (const redactor of this.redactoresFiltradosPagos) {
-        try {
-          const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${redactor.codigo}`);
-
-          const videosProcesados = this.filterByDateRange(response.data).map((item) => {
-            const montoEmpleado = Number(item.estimatedRevenue);
-
-
-            let categoria = "Sin Clasificación";
-            let colorCategoria = "#BDC3C7";
-            const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
-            const rpm = parseFloat((rawRpm * 0.9).toFixed(2));
-
-            if (rpm < 0.95) {
-              categoria = "Extremadamente Bajo";
-              colorCategoria = "#C0392B";
-            } else if (rpm <= 1.41) {
-              categoria = "Bajo Impacto";
-              colorCategoria = "#E74C3C";
-            } else if (rpm <= 1.92) {
-              categoria = "Buen Impacto";
-              colorCategoria = "#F1C40F";
-            } else if (rpm <= 2.41) {
-              categoria = "Alto Impacto";
-              colorCategoria = "#3498DB";
-            } else if (rpm > 2.41) {
-              categoria = "Impacto Sobresaliente";
-              colorCategoria = "#27AE60";
-            }
-
-            const fechaOriginal = new Date(item.date);
-            const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
-            const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            });
-
-            return {
-              ...item,
-              montoEmpleado,
-              categoria,
-              colorCategoria,
-              fechaPublicacion,
-              horaPublicacion,
-              rpm,
-            };
-          });
-
-          this.redactoresDetalles.push({
-            codigo: redactor.codigo,
-            nombre: redactor.nombre,
-            videosProcesados
-          });
-
-        } catch (error) {
-          console.error(`Error al obtener videos de ${redactor.nombre}:`, error);
-        }
-      }
     },
     async fetchRedactoresPorGrupoJefe() {
       try {
@@ -628,51 +559,56 @@ export default {
     },
     async fetchPersonalVideos() {
       try {
-        const response = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${this.userStore.user.id}`);
-        this.videos = this.filterByDateRange(response.data).map((item) => {
-          const montoEmpleado = Number(item.estimatedRevenue);
+        const response = await axios.get(
+            `https://api.pa-reporte.com/api/personal-videos/${this.userStore.user.id}`
+        );
 
-          let categoria = "Sin Clasificación";
-          let colorCategoria = "#BDC3C7"; // Gris por defecto
-          const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
-          const rpm = parseFloat((rawRpm * 0.9).toFixed(2)); // Aplica reducción del 10%
+        this.videos = this.filterByDateRange(response.data)
+            // 🔥 Ordena de más reciente a más antiguo
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map((item) => {
+              const montoEmpleado = Number(item.estimatedRevenue);
 
+              let categoria = "Sin Clasificación";
+              let colorCategoria = "#BDC3C7"; // Gris por defecto
+              const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+              const rpm = parseFloat((rawRpm * 0.9).toFixed(2)); // Aplica reducción del 10%
 
-          if (rpm < 0.95) {
-            categoria = "Extremadamente Bajo";
-            colorCategoria = "#C0392B";
-          } else if (rpm <= 1.41) {
-            categoria = "Bajo Impacto";
-            colorCategoria = "#E74C3C";
-          } else if (rpm <= 1.92) {
-            categoria = "Buen Impacto";
-            colorCategoria = "#F1C40F";
-          } else if (rpm <= 2.41) {
-            categoria = "Alto Impacto";
-            colorCategoria = "#3498DB";
-          } else if (rpm > 2.41) {
-            categoria = "Impacto Sobresaliente";
-            colorCategoria = "#27AE60";
-          }
+              if (rpm < 0.95) {
+                categoria = "Extremadamente Bajo";
+                colorCategoria = "#C0392B";
+              } else if (rpm <= 1.41) {
+                categoria = "Bajo Impacto";
+                colorCategoria = "#E74C3C";
+              } else if (rpm <= 1.92) {
+                categoria = "Buen Impacto";
+                colorCategoria = "#F1C40F";
+              } else if (rpm <= 2.41) {
+                categoria = "Alto Impacto";
+                colorCategoria = "#3498DB";
+              } else if (rpm > 2.41) {
+                categoria = "Impacto Sobresaliente";
+                colorCategoria = "#27AE60";
+              }
 
-          const fechaOriginal = new Date(item.date);
-          const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
-          const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
+              const fechaOriginal = new Date(item.date);
+              const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+              const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
 
-          return {
-            ...item,
-            montoEmpleado,
-            categoria,
-            colorCategoria,
-            fechaPublicacion,
-            horaPublicacion,
-            rpm,
-          };
-        });
+              return {
+                ...item,
+                montoEmpleado,
+                categoria,
+                colorCategoria,
+                fechaPublicacion,
+                horaPublicacion,
+                rpm,
+              };
+            });
 
         if (this.currentFilter === "videos") {
           this.filteredData = this.videos;
@@ -684,14 +620,19 @@ export default {
     async fetchVideos() {
       try {
         const response = await axios.get("https://api.pa-reporte.com/api/videos");
-        this.videos = this.filterByDateRange(response.data).map(item => {
-          const fechaOriginal = new Date(item.date);
-          const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
-          return {
-            ...item,
-            fechaPublicacion
-          };
-        });
+
+        this.videos = this.filterByDateRange(response.data)
+            // ordenar por fecha descendente (más reciente primero)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map(item => {
+              const fechaOriginal = new Date(item.date);
+              const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+              return {
+                ...item,
+                fechaPublicacion
+              };
+            });
+
         if (this.currentFilter === "videos") {
           this.filteredData = this.videos;
         }
