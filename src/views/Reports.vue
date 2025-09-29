@@ -80,7 +80,7 @@
           <td>{{ item.videoId }}</td>
           <td>{{ item.title }}</td>
           <td>{{ item.fechaPublicacion }}</td>
-          <td>{{ item.horaPublicacion }}</td>
+          <td v-if="!isEmpleado">{{ item.horaPublicacion }}</td>
 
           <!-- Normal para directivos -->
           <template v-if="!isEmpleado">
@@ -112,19 +112,37 @@
           <!-- Para empleados -->
           <template v-else>
             <td>{{ item.views }}</td>
+
+            <!-- Monto Redactor: si está caído mostramos "Caído" -->
             <td>
-                <span v-if="item.estimatedRevenue">
-                  ${{ (item.estimatedRevenue).toFixed(4) }}
-                </span>
-              <span v-else>-</span>
+    <span v-if="isCaido(item)" style="color: #C0392B; font-weight: 700;">
+      Caído
+    </span>
+              <span v-else>
+      <span v-if="item.estimatedRevenue !== undefined && item.estimatedRevenue !== null">
+        ${{ Number(item.estimatedRevenue).toFixed(4) }}
+      </span>
+      <span v-else>-</span>
+    </span>
             </td>
+
             <td>{{ item.averageViewDuration }}</td>
             <td>{{ item.rpm != null ? Number(item.rpm).toFixed(2) : '-' }}</td>
-            <td>{{ item.categoria || 'Sin Clasificación' }}</td>
 
-            <!-- Nueva columna: Color -->
+            <!-- Columna categoría -->
+            <td>
+    <span v-if="isCaido(item)" style="color: #C0392B; font-weight: 700;">
+      Caído
+    </span>
+              <span v-else>
+      {{ item.categoria || 'Sin Clasificación' }}
+    </span>
+            </td>
+
+            <!-- Columna Color -->
             <td>
               <div
+                  v-if="!isCaido(item)"
                   :style="{
         backgroundColor: item.colorCategoria || '#BDC3C7',
         width: '50px',
@@ -133,8 +151,10 @@
         margin: 'auto'
       }"
               ></div>
+              <span v-else style="color: #C0392B; font-weight: 700;">Caído</span>
             </td>
           </template>
+
         </tr>
 
         <tr
@@ -179,7 +199,6 @@
             <th>ID</th>
             <th>Título</th>
             <th>Fecha</th>
-            <th>Hora</th>
             <th>Visualización</th>
             <th>Monto Redactor</th>
             <th>Tiempo de Vista (s)</th>
@@ -197,21 +216,28 @@
             <td>{{ item.videoId }}</td>
             <td>{{ item.title }}</td>
             <td>{{ item.fechaPublicacion }}</td>
-            <td>{{ item.horaPublicacion }}</td>
             <td>{{ item.views }}</td>
-            <td>${{ item.montoEmpleado.toFixed(4) }}</td>
+
+            <!-- Monto redactor: si está caído mostramos "Caído" -->
+            <td>
+              <span v-if="isCaido(item)" style="color: #C0392B; font-weight: 700;">Caído</span>
+              <span v-else>
+    ${{ (item.montoEmpleado || 0).toFixed(4) }}
+  </span>
+            </td>
+
             <td>{{ item.averageViewDuration }}</td>
             <td>{{ item.rpm }}</td>
             <td>{{ item.categoria }}</td>
             <td>
               <div
                   :style="{
-                backgroundColor: item.colorCategoria,
-                width: '50px',
-                height: '20px',
-                borderRadius: '4px',
-                margin: 'auto'
-              }"
+      backgroundColor: item.colorCategoria || '#BDC3C7',
+      width: '50px',
+      height: '20px',
+      borderRadius: '4px',
+      margin: 'auto'
+    }"
               ></div>
             </td>
           </tr>
@@ -375,6 +401,36 @@ export default {
     }
   },
   methods: {
+    isCaido(video) {
+      // parsed commission (safe)
+      const com = (typeof video.estimatedRevenue === "number")
+          ? video.estimatedRevenue
+          : parseFloat(video.estimatedRevenue || "0");
+
+      // parse date safely
+      const dateMs = Date.parse(video.date);
+      const nowMs = Date.now();
+
+      // si no hay fecha válida, aplicamos solo la regla de comisión
+      const dias = Number.isFinite(dateMs)
+          ? Math.floor((nowMs - dateMs) / (1000 * 60 * 60 * 24))
+          : null;
+
+      // Regla especial: si comisión === 0 entonces:
+      // - <= 2 días -> NO es caído (pendiente)
+      // - >= 3 días -> SÍ es caído
+      if (!Number.isNaN(com) && Number(com) === 0) {
+        if (dias === null) {
+          // sin fecha, considerar caído por seguridad? aquí devolvemos true
+          return true;
+        }
+        return dias >= 3;
+      }
+
+      // Si tiene revenue (o com > 0), usar umbral histórico
+      const comision = Number.isNaN(Number(com)) ? 0 : Number(com);
+      return comision < 1.66452;
+    },
     filterByDateRange(videos) {
       const today = new Date();
       const day = today.getDate();
@@ -528,54 +584,77 @@ export default {
           try {
             const resVideos = await axios.get(`https://api.pa-reporte.com/api/personal-videos/${redactor.id}`);
 
-            const videosProcesados = this.filterByDateRange(resVideos.data).map((item) => {
-              const montoEmpleado = Number(item.estimatedRevenue);
+            const videosProcesados = this.filterByDateRange(resVideos.data)
+                // ordenar por fecha descendente (más reciente primero)
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map((item) => {
+                  const fechaOriginal = new Date(item.date);
+                  const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
+                  const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  });
 
-              let categoria = "Sin Clasificación";
-              let colorCategoria = "#BDC3C7";
-              const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
-              const rpm = parseFloat((rawRpm * 0.9).toFixed(2));
+                  const diasDeVigencia = Math.floor(
+                      (new Date() - fechaOriginal) / (1000 * 60 * 60 * 24)
+                  );
 
-              if (rpm < 0.95) {
-                categoria = "Extremadamente Bajo";
-                colorCategoria = "#C0392B";
-              } else if (rpm <= 1.41) {
-                categoria = "Bajo Impacto";
-                colorCategoria = "#E74C3C";
-              } else if (rpm <= 1.92) {
-                categoria = "Buen Impacto";
-                colorCategoria = "#F1C40F";
-              } else if (rpm <= 2.41) {
-                categoria = "Alto Impacto";
-                colorCategoria = "#3498DB";
-              } else if (rpm > 2.41) {
-                categoria = "Impacto Sobresaliente";
-                colorCategoria = "#27AE60";
-              }
+                  const montoEmpleado = Number(item.estimatedRevenue) || 0;
+                  const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+                  const rpm = parseFloat((rawRpm * 0.9).toFixed(2)); // Aplica reducción del 10%
 
-              const fechaOriginal = new Date(item.date);
-              const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
-              const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              });
+                  let categoria = "Sin Clasificación";
+                  let colorCategoria = "#BDC3C7"; // Gris por defecto
 
-              return {
-                ...item,
-                montoEmpleado,
-                categoria,
-                colorCategoria,
-                fechaPublicacion,
-                horaPublicacion,
-                rpm,
-              };
-            });
+                  // Misma lógica: si revenue = 0 -> Pendiente (≤2 días) / Caído (>2 días)
+                  if (montoEmpleado === 0) {
+                    if (diasDeVigencia <= 2) {
+                      categoria = "Sin Categoría (Pendiente)";
+                      colorCategoria = "#7F8C8D"; // Gris oscuro
+                    } else {
+                      categoria = "Caído";
+                      colorCategoria = "#000000"; // Negro
+                    }
+                  } else {
+                    // Clasificación normal por RPM
+                    if (rpm < 0.95) {
+                      categoria = "Extremadamente Bajo";
+                      colorCategoria = "#C0392B";
+                    } else if (rpm <= 1.41) {
+                      categoria = "Bajo Impacto";
+                      colorCategoria = "#E74C3C";
+                    } else if (rpm <= 1.92) {
+                      categoria = "Buen Impacto";
+                      colorCategoria = "#F1C40F";
+                    } else if (rpm <= 2.41) {
+                      categoria = "Alto Impacto";
+                      colorCategoria = "#3498DB";
+                    } else if (rpm > 2.41) {
+                      categoria = "Impacto Sobresaliente";
+                      colorCategoria = "#27AE60";
+                    }
+                  }
 
-            // Añadimos al arreglo de redactoresDetalles
+                  return {
+                    ...item,
+                    montoEmpleado,
+                    categoria,
+                    colorCategoria,
+                    fechaPublicacion,
+                    horaPublicacion,
+                    rpm,
+                  };
+                });
+
+            // calcular total de comision del mes para este redactor (opcional)
+            const totalComisionMes = videosProcesados.reduce((acc, v) => acc + (v.montoEmpleado || 0), 0);
+
+            // Añadimos al arreglo de redactoresDetalles (ya con videos ordenados)
             this.redactoresDetalles.push({
               codigo: redactor.codigo,
-              nombre: redactor.name,  // Cuidado: algunos APIs usan "name", otros "nombre"
+              nombre: redactor.name || redactor.nombre || "",
+              totalComisionMes,
               videosProcesados
             });
 
@@ -598,30 +677,6 @@ export default {
             // 🔥 Ordena de más reciente a más antiguo
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .map((item) => {
-              const montoEmpleado = Number(item.estimatedRevenue);
-
-              let categoria = "Sin Clasificación";
-              let colorCategoria = "#BDC3C7"; // Gris por defecto
-              const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
-              const rpm = parseFloat((rawRpm * 0.9).toFixed(2)); // Aplica reducción del 10%
-
-              if (rpm < 0.95) {
-                categoria = "Extremadamente Bajo";
-                colorCategoria = "#C0392B";
-              } else if (rpm <= 1.41) {
-                categoria = "Bajo Impacto";
-                colorCategoria = "#E74C3C";
-              } else if (rpm <= 1.92) {
-                categoria = "Buen Impacto";
-                colorCategoria = "#F1C40F";
-              } else if (rpm <= 2.41) {
-                categoria = "Alto Impacto";
-                colorCategoria = "#3498DB";
-              } else if (rpm > 2.41) {
-                categoria = "Impacto Sobresaliente";
-                colorCategoria = "#27AE60";
-              }
-
               const fechaOriginal = new Date(item.date);
               const fechaPublicacion = fechaOriginal.toLocaleDateString("es-PE");
               const horaPublicacion = fechaOriginal.toLocaleTimeString("es-PE", {
@@ -629,6 +684,45 @@ export default {
                 minute: "2-digit",
                 hour12: false,
               });
+
+              const diasDeVigencia = Math.floor(
+                  (new Date() - fechaOriginal) / (1000 * 60 * 60 * 24)
+              );
+
+              const montoEmpleado = Number(item.estimatedRevenue);
+              const rawRpm = item.rpm ? parseFloat(item.rpm) : 0;
+              const rpm = parseFloat((rawRpm * 0.9).toFixed(2)); // Aplica reducción del 10%
+
+              let categoria = "Sin Clasificación";
+              let colorCategoria = "#BDC3C7"; // Gris por defecto
+
+              // 🟢 Misma lógica que fetchVideos
+              if (montoEmpleado === 0) {
+                if (diasDeVigencia <= 2) {
+                  categoria = "Sin Categoría (Pendiente)";
+                  colorCategoria = "#7F8C8D"; // Gris oscuro
+                } else {
+                  categoria = "Caído";
+                  colorCategoria = "#000000"; // Negro
+                }
+              } else {
+                if (rpm < 0.95) {
+                  categoria = "Extremadamente Bajo";
+                  colorCategoria = "#C0392B";
+                } else if (rpm <= 1.41) {
+                  categoria = "Bajo Impacto";
+                  colorCategoria = "#E74C3C";
+                } else if (rpm <= 1.92) {
+                  categoria = "Buen Impacto";
+                  colorCategoria = "#F1C40F";
+                } else if (rpm <= 2.41) {
+                  categoria = "Alto Impacto";
+                  colorCategoria = "#3498DB";
+                } else if (rpm > 2.41) {
+                  categoria = "Impacto Sobresaliente";
+                  colorCategoria = "#27AE60";
+                }
+              }
 
               return {
                 ...item,
